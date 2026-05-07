@@ -1,0 +1,3 @@
+[submodule "dsfr"]
+	path = dsfr
+	url = https://github.com/GouvernementFR/dsfr.git

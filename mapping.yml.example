@@ -1,0 +1,75 @@
+# mapping.yml — exemple ADEME (équivalent de la Phase 1 POC)
+# Doit produire le même rendu que les screenshots dans visual-references/
+
+version: 1
+dsfr: "1.14.4"
+
+typography:
+  primary:
+    css-name: "Marianne"               # nom CSS conservé pour ne pas casser les var(--font-family)
+    files-source: "./assets/fonts/"
+    weights:
+      "300": { normal: "PublicSans-Light",   italic: "PublicSans-LightItalic" }
+      "400": { normal: "PublicSans-Regular", italic: "PublicSans-Italic" }
+      "500": { normal: "PublicSans-Medium",  italic: "PublicSans-MediumItalic" }
+      "700": { normal: "PublicSans-Bold",    italic: "PublicSans-BoldItalic" }
+  alt: keep                            # Spectral conservée
+
+colors:
+  blue-france:
+    rename: blue-ate
+    anchor:
+      hex: "#4950FB"
+    generation: lch-remap
+    recalibrate-grade:
+      main-525: main-444               # L*=44.4 → numéro de grade aligné
+      sun-113: sun-157                 # même logique sur sun
+    wcag:
+      sun-157: { min: 4.5, against: "#ffffff" }
+      main-444: { min: 3.0, against: "#ffffff" }
+      "625":   { min: 4.5, against: "#1e1e1e" }
+
+  red-marianne:
+    rename: red-laura
+    anchor:
+      hex: "#FF3333"
+    generation: lch-remap
+    add-grades:
+      sun-157: { L: 15.7, c-factor: 1.10 }   # red n'avait pas de sun explicite en DSFR
+    recalibrate-grade:
+      main-472: main-560
+    semantic-remap:
+      red-marianne-425: red-marianne-sun-157  # 425 jouait le rôle "sun" sans le nom
+    wcag:
+      sun-157: { min: 4.5, against: "#ffffff" }
+      main-560: { min: 3.0, against: "#ffffff" }
+      "625":    { min: 4.5, against: "#1e1e1e" }
+
+elevation:
+  shadow-color:
+    light: "rgba(0, 0, 0, 0.16)"
+    dark:  "rgba(0, 0, 0, 0.32)"
+
+border-radius:
+  base: "0.75rem"
+  targets:
+    - { selector: ".fr-input",       value: "0.75rem" }
+    - { selector: ".fr-select",      value: "0.75rem" }
+    - { selector: ".fr-badge",       value: "0.75rem" }
+    - { selector: ".fr-card",        value: "0.75rem", overflow: true }
+    - { selector: ".fr-alert",       value: "0.75rem" }
+    - { selector: ".fr-input-wrap--addon > *:first-child:not(:last-child)", value: "0.75rem 0 0 0.75rem" }
+    - { selector: ".fr-input-wrap--addon > *:last-child:not(:first-child)", value: "0 0.75rem 0.75rem 0" }
+
+manual-overrides:
+  - "./overrides/_card-fix.scss"       # box-shadow inset trick pour bordure radius
+
+components:
+  remove:
+    - header
+    - footer
+
+post-process:
+  rename:
+    enabled: true
+    safety-check: true

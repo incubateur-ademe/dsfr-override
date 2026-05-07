@@ -1,0 +1,24 @@
+{
+  "name": "dsfr-override",
+  "version": "0.1.0",
+  "description": "ADEME fork of DSFR — override-based builder (Phase 2)",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "bin": {
+    "ademe-ds": "./builder/index.js"
+  },
+  "scripts": {
+    "build": "node builder/index.js build",
+    "generate": "node builder/index.js generate",
+    "validate": "node builder/index.js validate"
+  },
+  "files": [
+    "builder/",
+    "assets/",
+    "mapping.yml.example",
+    "README.md"
+  ]
+}
