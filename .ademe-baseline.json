@@ -1,0 +1,11 @@
+{
+  "src/module/color/variable/_options.scss": "d8d5168430f3a73c08471c0441c3df621f3f8fc0c2a169641d9c06d4a2f32174",
+  "src/module/color/variable/_sets.scss": "f46ceb020b4e46433c1ef6c4b00d76084905b835e7460ec96c718ce8e22bc6d1",
+  "src/module/color/variable/_decisions.scss": "6cc7f813c4bcf73e7d0d2ceb22193b518f1721ff64bd5b85accb841b637beb59",
+  "src/module/color/variable/_static.scss": "437a366bebb067cc35d1c53d3ca903da8fabc54727b8483b0f7eed1242d00b47",
+  "src/dsfr/component/main.scss": "80f5492411bfaf5c89f5ccd98a727d3ee143b270192519e7f101b9ca482fe80f",
+  "src/dsfr/component/legacy.scss": "05d94979d67439879dd856c7ad22faf9103ee58ac4b8dd805077dc0409c89d75",
+  "src/dsfr/component/print.scss": "3ae5a982e6d34f46cc4131e6568ca8c65efd2a858752e3c4801ce3f47821708c",
+  "src/dsfr/core/style/typography/setting/_font-face.scss": "12bc2f257eca7dccde38664c7dc14919d69fdd46bac018b263f26cc0fa18f3f1",
+  "src/module/elevation/variable/_shadows.scss": "1397a1ae3d0279ba89064402a8bda6bb279dad77a0566549180eb5caec7ba3f7"
+}
