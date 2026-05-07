@@ -21,5 +21,8 @@
     "assets/",
     "mapping.yml.example",
     "README.md"
-  ]
+  ],
+  "dependencies": {
+    "sass": "^1.99.0"
+  }
 }
