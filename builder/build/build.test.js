@@ -17,8 +17,7 @@ async function build() {
   return { ...result, clean: status.clean, dirty: status.dirty };
 }
 
-test('build: empty overrides produce a sane DSFR-shaped CSS', async (t) => {
-  // Ensure no leftover dist file biases the test.
+test('build: produces a sane DSFR-shaped CSS', async () => {
   const out = join(PROJECT_ROOT, 'dist', 'dsfr-ademe.css');
   if (existsSync(out)) rmSync(out);
 
@@ -34,6 +33,15 @@ test('build: empty overrides produce a sane DSFR-shaped CSS', async (t) => {
   assert.ok(css.includes('@media print'), 'contains print rules');
 
   assert.ok(r.clean, `dsfr/ submodule should be clean after build, got:\n${r.dirty}`);
+});
+
+test('build: ADEME mapping injects LCh palette into combined shade vars', async () => {
+  await build();
+  const css = readFileSync(join(PROJECT_ROOT, 'dist', 'dsfr-ademe.css'), 'utf8');
+  // Phase 1 reference values — the combined shade vars DSFR emits should now hold ours.
+  assert.ok(css.includes('--blue-france-sun-113-625: #001977'), 'blue strong (light) → ADEME sun-157');
+  assert.ok(css.includes('--blue-france-main-525: #4950fb'), 'blue main → ADEME main-444 anchor');
+  assert.ok(css.includes('--red-marianne-main-472: #ff3333'), 'red main → ADEME main-560 anchor');
 });
 
 test('build: two consecutive builds are byte-identical (reproducibility)', async () => {

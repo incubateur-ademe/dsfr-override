@@ -1,45 +1,83 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { load as parseYaml } from 'js-yaml';
 import { generateDsfrConfig } from './dsfr-config.js';
+import { computeFamilyPalette } from '../generate/palette.js';
+import { transformFamilyBlock } from './transform-options.js';
+import { ensureWorkspace } from './workspace.js';
 
 /**
- * Prepare the SCSS entry source and resolution context for compilation.
- *
- * Strategy: do NOT materialize a tmp workspace on disk. Instead we feed sass
- * an in-memory string with a virtual URL that points inside `dsfr/src/dsfr/`
- * — that gives @import resolution the same context as if we were building
- * the official DSFR `main.scss`, while letting us append our overrides at
- * the end without touching the submodule.
+ * Build the inputs for sass compilation. Materializes a writable copy of dsfr/
+ * (so that the modified _options.scss wins at relative-import time), then
+ * composes the SCSS entry that mirrors dsfr/tool/build/styles.js.
  *
  * @param {object} opts
- * @param {string} opts.projectRoot  Absolute path of the override project (where dsfr/ submodule lives)
- * @param {string} [opts.overridesIndex]  Absolute path to overrides/_index.scss (created empty if missing)
- * @param {string} [opts.distDir]    Output directory (created if missing)
- * @returns {{ entrySource: string, entryUrl: URL, loadPaths: string[], distDir: string }}
+ * @param {string} opts.projectRoot       Project root (where dsfr/ submodule lives)
+ * @param {string} [opts.mappingPath]     Path to mapping.yml (default: <projectRoot>/mapping.yml)
+ * @param {string} [opts.overridesIndex]  Path to overrides/_index.scss (auto-created if missing)
+ * @param {string} [opts.distDir]         Output dir (auto-created if missing)
+ * @returns {{
+ *   entrySource: string,
+ *   entryUrl: URL,
+ *   loadPaths: string[],
+ *   distDir: string,
+ *   workspaceDsfr: string,
+ *   mapping: object | null
+ * }}
  */
 export function prepare(opts) {
   const projectRoot = opts.projectRoot;
   const dsfrRoot = join(projectRoot, 'dsfr');
-  const dsfrEntryDir = join(dsfrRoot, 'src/dsfr');
   const overridesIndex = opts.overridesIndex ?? join(projectRoot, 'overrides/_index.scss');
   const distDir = opts.distDir ?? join(projectRoot, 'dist');
+  const mappingPath = opts.mappingPath ?? join(projectRoot, 'mapping.yml');
 
-  if (!existsSync(dsfrEntryDir)) {
+  if (!existsSync(join(dsfrRoot, 'src/dsfr'))) {
     throw new Error(`DSFR submodule not found at ${dsfrRoot}. Run: git submodule update --init`);
   }
 
-  generateDsfrConfig(dsfrRoot);
+  const { workspaceDsfr } = ensureWorkspace(projectRoot, dsfrRoot);
+
+  generateDsfrConfig(workspaceDsfr);
 
   if (!existsSync(overridesIndex)) {
     mkdirSync(dirname(overridesIndex), { recursive: true });
     writeFileSync(overridesIndex, '// generated overrides — empty by default\n');
   }
-
   if (!existsSync(distDir)) mkdirSync(distDir, { recursive: true });
 
-  // Reproduce dsfr/tool/build/styles.js: combined entry concatenates each style file
-  // declared in the dsfr package (main, legacy, print).
+  const mapping = existsSync(mappingPath)
+    ? parseYaml(readFileSync(mappingPath, 'utf8'))
+    : null;
+
+  // Always start from the pristine submodule so the workspace doesn't
+  // accumulate stale per-build mutations.
+  const optionsSrc = join(dsfrRoot, 'src/module/color/variable/_options.scss');
+  const optionsDst = join(workspaceDsfr, 'src/module/color/variable/_options.scss');
+  let optionsScss = readFileSync(optionsSrc, 'utf8');
+  if (mapping?.colors) {
+    for (const [family, cfg] of Object.entries(mapping.colors)) {
+      if (cfg?.generation !== 'lch-remap' || !cfg?.anchor?.hex) continue;
+      const semanticRemap = {};
+      const rawRemap = cfg['semantic-remap'] ?? cfg.semanticRemap ?? {};
+      const prefix = `${family}-`;
+      for (const [oldFull, newFull] of Object.entries(rawRemap)) {
+        if (oldFull.startsWith(prefix) && newFull.startsWith(prefix)) {
+          semanticRemap[oldFull.slice(prefix.length)] = newFull.slice(prefix.length);
+        }
+      }
+      const palette = computeFamilyPalette({
+        anchor: cfg.anchor.hex,
+        recalibrate: cfg['recalibrate-grade'] ?? cfg.recalibrate ?? {},
+        addGrades: cfg['add-grades'] ?? cfg.addGrades ?? {},
+        semanticRemap
+      });
+      optionsScss = transformFamilyBlock(optionsScss, family, palette);
+    }
+  }
+  writeFileSync(optionsDst, optionsScss);
+
   const overridesAbs = resolve(overridesIndex);
   const entrySource = [
     "@import 'main';",
@@ -49,12 +87,14 @@ export function prepare(opts) {
     ''
   ].join('\n');
 
-  const entryUrl = pathToFileURL(join(dsfrEntryDir, '__ademe-entry.scss'));
+  const entryUrl = pathToFileURL(join(workspaceDsfr, 'src/dsfr/__ademe-entry.scss'));
 
   return {
     entrySource,
     entryUrl,
-    loadPaths: [dsfrRoot],
-    distDir
+    loadPaths: [workspaceDsfr],
+    distDir,
+    workspaceDsfr,
+    mapping
   };
 }
