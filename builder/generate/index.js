@@ -1,0 +1,75 @@
+import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { generateFontFaceScss } from './font-face.js';
+import { generateShadowsScss } from './shadows.js';
+import { generateRadiusScss } from './radius.js';
+
+/**
+ * Materialize all SCSS overrides under <projectRoot>/overrides/ from a parsed
+ * mapping, plus copy font files referenced by the typography section into dist/.
+ *
+ * Writes _font-face.scss, _shadows.scss, _radius.scss + the _index.scss that
+ * imports them in order. Empty sections produce empty files (no @import emitted).
+ *
+ * @param {object} args
+ * @param {string} args.projectRoot
+ * @param {object | null} args.mapping
+ * @param {string} args.distDir
+ * @returns {{ overridesIndex: string, written: string[], fontsCopied: number }}
+ */
+export function generateOverrides({ projectRoot, mapping, distDir }) {
+  const overridesDir = join(projectRoot, 'overrides');
+  if (!existsSync(overridesDir)) mkdirSync(overridesDir, { recursive: true });
+
+  const written = [];
+  const sections = [
+    { file: '_font-face.scss', content: mapping ? generateFontFaceScss(mapping.typography) : '' },
+    { file: '_shadows.scss',   content: mapping ? generateShadowsScss(mapping.elevation)   : '' },
+    { file: '_radius.scss',    content: mapping ? generateRadiusScss(mapping['border-radius']) : '' }
+  ];
+
+  const indexImports = [];
+  for (const { file, content } of sections) {
+    const path = join(overridesDir, file);
+    writeFileSync(path, content);
+    written.push(path);
+    if (content.trim().length > 0) indexImports.push(file.replace(/^_/, '').replace(/\.scss$/, ''));
+  }
+
+  const indexPath = join(overridesDir, '_index.scss');
+  const indexBody = indexImports.length === 0
+    ? '// no overrides generated\n'
+    : indexImports.map(name => `@import '${name}';`).join('\n') + '\n';
+  writeFileSync(indexPath, indexBody);
+  written.push(indexPath);
+
+  const fontsCopied = copyFonts({ projectRoot, mapping, distDir });
+
+  return { overridesIndex: indexPath, written, fontsCopied };
+}
+
+function copyFonts({ projectRoot, mapping, distDir }) {
+  const primary = mapping?.typography?.primary;
+  if (!primary?.['files-source'] || !primary?.weights) return 0;
+
+  const sourceDir = resolve(projectRoot, primary['files-source']);
+  if (!existsSync(sourceDir)) return 0;
+
+  const distFonts = join(distDir, 'fonts');
+  if (!existsSync(distFonts)) mkdirSync(distFonts, { recursive: true });
+
+  let count = 0;
+  for (const variants of Object.values(primary.weights)) {
+    for (const fileBase of Object.values(variants)) {
+      for (const ext of ['woff2', 'woff']) {
+        const src = join(sourceDir, `${fileBase}.${ext}`);
+        const dst = join(distFonts, `${fileBase}.${ext}`);
+        if (existsSync(src)) {
+          cpSync(src, dst);
+          count++;
+        }
+      }
+    }
+  }
+  return count;
+}

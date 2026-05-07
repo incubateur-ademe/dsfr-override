@@ -44,6 +44,25 @@ test('build: ADEME mapping injects LCh palette into combined shade vars', async 
   assert.ok(css.includes('--red-marianne-main-472: #ff3333'), 'red main → ADEME main-560 anchor');
 });
 
+test('build: typography/shadow/radius overrides reach the final CSS', async () => {
+  await build();
+  const css = readFileSync(join(PROJECT_ROOT, 'dist', 'dsfr-ademe.css'), 'utf8');
+  assert.ok(css.includes('PublicSans-Regular.woff2'), 'PublicSans @font-face emitted');
+  assert.ok(css.includes('--shadow-color: rgba(0, 0, 0, 0.16)'), 'neutral shadow color (light) applied');
+  assert.ok(css.includes('--shadow-color: rgba(0, 0, 0, 0.32)'), 'neutral shadow color (dark) applied');
+  assert.ok(css.includes('@layer ademe'), '@layer ademe used for radius targets');
+  assert.ok(/\.fr-card\s*\{[^}]*border-radius:\s*0\.75rem/.test(css), '.fr-card border-radius 0.75rem');
+  assert.ok(/\.fr-card\s*\{[^}]*overflow:\s*hidden/.test(css), '.fr-card overflow: hidden');
+});
+
+test('build: copies font files to dist/fonts/', async () => {
+  await build();
+  const fontsDir = join(PROJECT_ROOT, 'dist', 'fonts');
+  for (const variant of ['PublicSans-Regular.woff2', 'PublicSans-Bold.woff2', 'PublicSans-LightItalic.woff']) {
+    assert.ok(existsSync(join(fontsDir, variant)), `missing ${variant} in dist/fonts/`);
+  }
+});
+
 test('build: two consecutive builds are byte-identical (reproducibility)', async () => {
   const r1 = await build();
   const css1 = readFileSync(r1.outFile);

@@ -1,9 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { load as parseYaml } from 'js-yaml';
 import { generateDsfrConfig } from './dsfr-config.js';
 import { computeFamilyPalette } from '../generate/palette.js';
+import { generateOverrides } from '../generate/index.js';
 import { transformFamilyBlock } from './transform-options.js';
 import { ensureWorkspace } from './workspace.js';
 
@@ -41,15 +42,13 @@ export function prepare(opts) {
 
   generateDsfrConfig(workspaceDsfr);
 
-  if (!existsSync(overridesIndex)) {
-    mkdirSync(dirname(overridesIndex), { recursive: true });
-    writeFileSync(overridesIndex, '// generated overrides — empty by default\n');
-  }
   if (!existsSync(distDir)) mkdirSync(distDir, { recursive: true });
 
   const mapping = existsSync(mappingPath)
     ? parseYaml(readFileSync(mappingPath, 'utf8'))
     : null;
+
+  generateOverrides({ projectRoot, mapping, distDir });
 
   // Always start from the pristine submodule so the workspace doesn't
   // accumulate stale per-build mutations.
