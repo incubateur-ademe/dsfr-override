@@ -63,6 +63,21 @@ test('build: copies font files to dist/fonts/', async () => {
   }
 });
 
+test('build: components.remove strips header/footer from the output', async () => {
+  await build();
+  const css = readFileSync(join(PROJECT_ROOT, 'dist', 'dsfr-ademe.css'), 'utf8');
+  assert.equal((css.match(/\.fr-header[^a-z]/g) ?? []).length, 0, 'no .fr-header selectors');
+  assert.equal((css.match(/\.fr-footer[^a-z]/g) ?? []).length, 0, 'no .fr-footer selectors');
+});
+
+test('build: manual-overrides reach the output (card-fix)', async () => {
+  await build();
+  const css = readFileSync(join(PROJECT_ROOT, 'dist', 'dsfr-ademe.css'), 'utf8');
+  // Card-fix box-shadow inset trick — manual override appended to overrides/_index.scss.
+  assert.ok(/\.fr-card:not\(\.fr-card--no-border\):not\(\.fr-card--shadow\)\s*\{[^}]*box-shadow:\s*inset/.test(css),
+    'card-fix box-shadow inset rule present');
+});
+
 test('build: two consecutive builds are byte-identical (reproducibility)', async () => {
   const r1 = await build();
   const css1 = readFileSync(r1.outFile);

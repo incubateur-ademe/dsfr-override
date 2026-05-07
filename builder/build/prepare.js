@@ -7,6 +7,7 @@ import { computeFamilyPalette } from '../generate/palette.js';
 import { generateOverrides } from '../generate/index.js';
 import { transformFamilyBlock } from './transform-options.js';
 import { ensureWorkspace } from './workspace.js';
+import { filterComponents } from './filter-components.js';
 
 /**
  * Build the inputs for sass compilation. Materializes a writable copy of dsfr/
@@ -76,6 +77,12 @@ export function prepare(opts) {
     }
   }
   writeFileSync(optionsDst, optionsScss);
+
+  filterComponents({
+    dsfrRoot,
+    workspaceDsfr,
+    removeList: mapping?.components?.remove ?? []
+  });
 
   const overridesAbs = resolve(overridesIndex);
   const entrySource = [

@@ -1,5 +1,5 @@
 import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { generateFontFaceScss } from './font-face.js';
 import { generateShadowsScss } from './shadows.js';
 import { generateRadiusScss } from './radius.js';
@@ -36,10 +36,23 @@ export function generateOverrides({ projectRoot, mapping, distDir }) {
     if (content.trim().length > 0) indexImports.push(file.replace(/^_/, '').replace(/\.scss$/, ''));
   }
 
+  // Manual overrides: user-curated files referenced by absolute or project-relative path.
+  // We don't copy them — we just import them via absolute path so edits take effect
+  // on the next build with no extra plumbing.
+  const manualImports = [];
+  for (const path of mapping?.['manual-overrides'] ?? []) {
+    const abs = resolve(projectRoot, path);
+    if (!existsSync(abs)) {
+      throw new Error(`manual-overrides: file not found: ${path} (resolved to ${abs})`);
+    }
+    manualImports.push(abs);
+  }
+
   const indexPath = join(overridesDir, '_index.scss');
-  const indexBody = indexImports.length === 0
-    ? '// no overrides generated\n'
-    : indexImports.map(name => `@import '${name}';`).join('\n') + '\n';
+  const lines = [];
+  for (const name of indexImports) lines.push(`@import '${name}';`);
+  for (const abs of manualImports) lines.push(`@import '${abs}';`);
+  const indexBody = lines.length === 0 ? '// no overrides generated\n' : lines.join('\n') + '\n';
   writeFileSync(indexPath, indexBody);
   written.push(indexPath);
 
