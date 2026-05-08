@@ -13,11 +13,18 @@ node builder/serve.js
 
 Le serveur est ~50 lignes de Node natif (`node:http` + `node:fs`), zéro dépendance. Sert tout le projet à la racine, MIME types gérés pour CSS / JS / fonts / SVG.
 
+## Page témoin vs Storybook
+
+- **Page témoin** : démarre en <1 s, charge un seul HTML statique. Bonne pour vérifier "est-ce que mon dernier `pnpm build` n'a rien cassé d'évident" en 5 secondes chrono. Inclut un diagnostic typographie automatique.
+- **Storybook** : démarre en ~30 s (pré-bundling vite), recharge à chaque modif. Bon pour explorer 322 composants × variantes ou démontrer le rendu ADEME à un tiers.
+
+Surcoût négligeable (~250 lignes HTML + 50 lignes Node), usage complémentaire.
+
 ## Ce que la page teste
 
 | Section                | Vérifie                                                                                  |
 |------------------------|------------------------------------------------------------------------------------------|
-| Diagnostic typographie | `Marianne` (nom CSS) résout vers les fichiers Public Sans (canvas measurement)           |
+| Diagnostic typographie *(meta-test, voir § dédié plus bas)* | `Marianne` (nom CSS) résout bien vers Public Sans, pas vers une Marianne du système |
 | Typographie            | Public Sans Light / Regular / Medium / Bold + italiques + Spectral pour `fr-text--alt`   |
 | Palette Blue ATE       | Les 11 grades (75 → 975 + sun-157 + main-444) en swatches HEX-codés                      |
 | Palette Red Laura      | Idem (sun-157 ajouté via `add-grades`, main-560 via `recalibrate-grade`)                 |
@@ -42,13 +49,6 @@ const w3 = measure(`'NoSuchFont', monospace`)  // fallback aussi
 ```
 
 Si `w1 ≠ w2` et `w1 ≠ w3`, c'est qu'une fonte custom est chargée sous le nom `Marianne` — donc nos `@font-face` PublicSans gagnent. Le panneau affiche le verdict en clair (`✓ Marianne → PublicSans` ou `✗ fallback`) plus la liste complète des fontes chargées (`document.fonts`) et toutes les règles `@font-face` du CSS avec leur src effectif.
-
-## Pourquoi ça existe en plus du Storybook
-
-- **Storybook démarre en ~30 s** (pré-bundling vite), recharge à chaque modif. Bon pour explorer 322 composants × variantes.
-- **La page témoin démarre en <1 s**, charge un seul HTML statique. Bon pour vérifier "est-ce que mon dernier `pnpm build` n'a rien cassé d'évident" en 5 secondes chrono.
-
-Le surcoût est négligeable (~250 lignes HTML + 50 lignes Node), et l'usage est complémentaire.
 
 ## Ajouter un cas
 

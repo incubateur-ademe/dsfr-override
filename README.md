@@ -14,7 +14,7 @@ Prend le DSFR en submodule git (sans le toucher), génère des overrides SCSS de
 git clone <this-repo>
 cd dsfr-override
 git submodule update --init --recursive
-pnpm install
+pnpm install        # installe la racine + le workspace storybook
 pnpm build
 ```
 
@@ -28,8 +28,10 @@ Avec `--minify` :
 
 ```bash
 pnpm build --minify
-# → dist/*.min.css en plus
+# → dist/*.min.css en plus (cssnano)
 ```
+
+> Le repo est un **pnpm workspace** : la racine (`./`) contient le builder, l'orchestration et les tests ; `storybook/` est un sous-package isolé (~500 MB de deps Storybook qu'on ne veut pas dans la racine). `pnpm install` à la racine installe les deux. Pour ne travailler que sur le builder, ignore `storybook/node_modules/`.
 
 ## Commandes
 
@@ -42,16 +44,22 @@ pnpm build --minify
 | `pnpm validate --strict` | Idem, mais les warnings deviennent des erreurs                  |
 | `pnpm baseline`       | Snapshot SHA-256 des fichiers DSFR critiques → `.ademe-baseline.json` |
 | `pnpm upgrade`        | `git submodule update --remote dsfr` puis `validate`               |
-| `pnpm test`           | Tests unitaires (LCh + palette + validate + e2e build)             |
-| `pnpm storybook`      | Build + lance le Storybook DSFR sur :6006                          |
+| `pnpm test`           | 46 tests : LCh primitives + palette match Phase 1 + validate + build e2e |
+| `pnpm storybook`      | `pnpm build` + lance le Storybook DSFR sur :6006                   |
+| `node builder/serve.js` | Serveur statique (port 8080 par défaut) pour `example/index.html` |
+
+`--minify` est un flag CLI réservé au build (release / CI). Il n'a pas d'équivalent dans `mapping.yml` : la minification est une décision opérationnelle, pas une décision de design system. La section `post-css:` du mapping contrôle uniquement les passes appliquées en mode normal (mqpacker + dedup + banner ADEME) ; elle s'enchaîne automatiquement en mode `--minify`.
 
 ## Vérifier visuellement
 
-Deux outils complémentaires, avec deux usages différents :
+| Quand | Outil | Démarrage | URL |
+|---|---|---|---|
+| Smoke test rapide après `pnpm build` ("rien n'a cassé d'évident ?") | Page témoin | <1 s, zéro dep | `node builder/serve.js` → `:8080/example/index.html` |
+| Explorer un composant DSFR particulier ou démontrer le rendu ADEME | Storybook | ~30 s premier démarrage, ~5 s ensuite | `pnpm storybook` → `:6006` |
 
-**Page témoin** (`example/index.html`, sert sur `:8080` via `node builder/serve.js`) — smoke test 5 secondes, exerce les composants critiques (typographie, palette, boutons, formulaires, alertes, cards) avec un panneau de diagnostic typo intégré qui confirme que `Marianne` (nom CSS) est bien servie par les fichiers Public Sans. Aucune dépendance lourde, démarre en `node` natif. Voir `docs/example.md`.
+**Page témoin** : un seul HTML, exerce typo / palette / boutons / formulaires / alertes / cards / classes utilitaires renommées. Inclut un diagnostic typographie qui confirme via canvas measurement que `Marianne` (nom CSS) est bien rendue par les fichiers Public Sans. Voir `docs/example.md`.
 
-**Storybook** (`pnpm storybook`, sert sur `:6006`) — exploration exhaustive : 322 stories DSFR + 57 docs pages avec switcher light/dark et viewports. Réutilise les stories du submodule pristine, charge nos `dist/dsfr-ademe.css` + `dist/utility-ademe.css`. Voir `docs/storybook.md`.
+**Storybook** : 322 stories DSFR + 57 docs pages avec switcher light/dark et viewports. Stories pioché dans le submodule pristine (zéro copie). Voir `docs/storybook.md`.
 
 ## Pourquoi pas un fork direct du DSFR ?
 

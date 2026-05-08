@@ -23,7 +23,6 @@ function bannerPlugin(text) {
     }
   };
 }
-bannerPlugin.postcss = true;
 
 const NORMAL_PLUGINS = (banner) => [
   mqpacker({ sort: false }),
@@ -32,10 +31,9 @@ const NORMAL_PLUGINS = (banner) => [
   ...(banner ? [bannerPlugin(banner)] : [])
 ];
 
+// Minify pass runs on the already-deduped output of the normal pass, so it only
+// needs cssnano (+ banner re-prepend after cssnano strips comments).
 const MINIFY_PLUGINS = (banner) => [
-  mqpacker({ sort: false }),
-  combineDuplicatedSelectors,
-  discardDuplicates,
   cssnano({ preset: ['default', { discardComments: { removeAll: true } }] }),
   ...(banner ? [bannerPlugin(banner)] : [])
 ];

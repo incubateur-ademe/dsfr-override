@@ -93,11 +93,14 @@ async function runBuild(opts) {
     logInfo(`postcss (mqpacker + dedup${opts.minify ? ' + cssnano' : ''})`);
     const banner = postcssCfg.banner === false ? null
       : (postcssCfg['banner-text'] ?? defaultBanner(input.mapping));
-    for (const r of results) {
+    // Process all targets first (no in-place mutation), then write atomically
+    // — if any target throws, dist/ keeps its previous state instead of being
+    // half-updated.
+    const processed = await Promise.all(results.map(async (r) => {
       const out = await postcssProcess(r.css, { banner, minify: opts.minify, from: r.outFile, to: r.outFile });
-      r.css = out.css;
-      r.minCss = out.minCss;
-    }
+      return { ...r, css: out.css, minCss: out.minCss };
+    }));
+    results = processed;
   }
 
   writeResults(results);

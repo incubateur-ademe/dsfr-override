@@ -9,7 +9,12 @@ pnpm storybook
 # → http://localhost:6006
 ```
 
-Le script enchaîne `pnpm build` (pour s'assurer que `dist/dsfr-ademe.css` est à jour) puis `storybook dev`. Premier démarrage long (~30s) le temps que vite optimise les deps ; les suivants ~5s.
+Sous le capot, `pnpm storybook` enchaîne deux choses :
+
+1. `pnpm build` à la racine — assure que `dist/dsfr-ademe.css` et `dist/utility-ademe.css` sont à jour (~10s, instantané si rien n'a changé côté builder).
+2. `pnpm --filter dsfr-override-storybook storybook` — lance `storybook dev` depuis le sous-workspace. Premier démarrage ~30s le temps que vite optimise les deps ; les suivants ~5s.
+
+Si tu modifies seulement `mapping.yml` ou un fichier dans `overrides/`, relance `pnpm build` à part puis hard-reload Storybook (`cmd+shift+R`). Pas besoin de relancer `pnpm storybook` complet.
 
 ## Architecture
 
@@ -54,6 +59,17 @@ Storybook sert les fichiers statiques via `staticDirs`. Notre `main.js` monte :
 Le submodule DSFR ne contient que les **sources** — ni `dist/dsfr.module.min.js`, ni les CSS minifiés. Pour les générer il faudrait `cd dsfr && yarn install && yarn build`, ce qu'on cherche à éviter (c'est tout le point de ne pas toucher au submodule).
 
 Plutôt que reproduire le pipeline JS du DSFR, on tire le JS pré-buildé depuis le package `@gouvfr/dsfr@1.14.4` (même version que celle pinned du submodule). C'est en `dependencies` du workspace `storybook/`. Cohérence assurée tant que `mapping.yml.dsfr === storybook/package.json.@gouvfr/dsfr`.
+
+### Upgrade DSFR
+
+Quand le submodule passe à une nouvelle version (ex : 1.14.4 → 1.15.0) :
+
+1. `git -C dsfr checkout v1.15.0`
+2. Mettre à jour `mapping.yml` : `dsfr: "1.15.0"`
+3. **Mettre à jour `storybook/package.json`** : `"@gouvfr/dsfr": "1.15.0"`, puis `pnpm install`
+4. `pnpm baseline` puis `pnpm validate` pour détecter et acter le drift
+
+Sans le step 3, le JS Storybook reste sur l'ancienne version et peut diverger de la palette / des composants. Aucun check automatique pour le moment — à ajouter dans `validate/` plus tard si nécessaire.
 
 ## Pièges connus + leurs fixes
 
