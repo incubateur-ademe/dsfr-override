@@ -49,6 +49,14 @@ const config = {
     return config;
   },
 
+  // Storybook 8.6 has its own host validation middleware in front of Vite —
+  // setting vite's server.allowedHosts has no effect. The flag lives on
+  // `core.allowedHosts`. `true` allows any Host header, fine for a local dev
+  // tool reachable through tailscale / reverse proxies.
+  core: {
+    allowedHosts: true
+  },
+
   docs: {
     autodocs: 'tag'
   },
