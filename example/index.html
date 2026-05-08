@@ -206,6 +206,25 @@
   </section>
 
   <section class="ademe-section">
+    <h2>Icones — Lucide overrides + adds</h2>
+    <p class="fr-text--sm"><code>fr--*</code> sont remplacées 1-1 par leurs équivalents Lucide (mapping <code>icons.overrides</code>). Lucide est stroke-based, donc le rendu en <code>mask-image</code> donne une silhouette en lignes (pas en aplat plein comme les Remix DSFR).</p>
+    <h3>Overrides</h3>
+    <div class="ademe-stack" style="gap: 1rem">
+      <span class="fr-icon-fr--success-fill" aria-hidden="true" style="--icon-size: 1.5rem; color: var(--text-default-success); font-size: 1.5rem">success</span>
+      <span class="fr-icon-fr--warning-fill" aria-hidden="true" style="--icon-size: 1.5rem; color: var(--text-default-warning); font-size: 1.5rem">warning</span>
+      <span class="fr-icon-fr--error-fill" aria-hidden="true" style="--icon-size: 1.5rem; color: var(--text-default-error); font-size: 1.5rem">error</span>
+      <span class="fr-icon-fr--info-fill" aria-hidden="true" style="--icon-size: 1.5rem; color: var(--text-default-info); font-size: 1.5rem">info</span>
+      <span class="fr-icon-fr--accessibility-fill" aria-hidden="true" style="--icon-size: 1.5rem; font-size: 1.5rem">accessibility</span>
+    </div>
+    <h3>Adds (nouvelles classes utilitaires)</h3>
+    <div class="ademe-stack" style="gap: 1rem">
+      <span class="fr-icon-flame" aria-hidden="true" style="--icon-size: 1.5rem; color: var(--text-default-warning); font-size: 1.5rem">.fr-icon-flame</span>
+      <span class="fr-icon-leaf" aria-hidden="true" style="--icon-size: 1.5rem; color: var(--text-default-success); font-size: 1.5rem">.fr-icon-leaf</span>
+      <span class="fr-icon-ademe-pin" aria-hidden="true" style="--icon-size: 1.5rem; font-size: 1.5rem">.fr-icon-ademe-pin (alias map-pin)</span>
+    </div>
+  </section>
+
+  <section class="ademe-section">
     <h2>Vérification rename — classes utilitaires &amp; variables CSS</h2>
     <p class="fr-text--sm">Le post-process a renommé <code>blue-france</code> en <code>blue-ate</code> et <code>red-marianne</code> en <code>red-laura</code>. Les classes utilitaires viennent du package <code>utility</code> (chargé via <code>utility-ademe.css</code>).</p>
     <h3>Classes utilitaires</h3>

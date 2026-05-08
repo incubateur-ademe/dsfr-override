@@ -64,6 +64,19 @@ border-radius:
 manual-overrides:
   - "./overrides/_card-fix.scss"       # box-shadow inset trick pour bordure radius
 
+icons:
+  # Source : lucide-static (npm). Les ~999 icones Remix DSFR (déjà MIT) restent
+  # telles quelles ; seules les icones de famille fr-- sont DSFR-specific et
+  # méritent un remplacement.
+  overrides:                           # remplace 1-1 (même nom DSFR, contenu Lucide)
+    fr--success-fill: circle-check
+    fr--warning-fill: triangle-alert
+    fr--error-fill:   circle-x
+    fr--info-fill:    info
+  add:                                 # nouvelles classes utilitaires .fr-icon-<token>
+    - flame                            # → .fr-icon-flame
+    - { token: ademe-pin, name: map-pin }  # alias
+
 components:
   remove:
     - header

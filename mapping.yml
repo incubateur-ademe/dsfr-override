@@ -65,6 +65,38 @@ border-radius:
 manual-overrides:
   - "./overrides/_card-fix.scss"       # box-shadow inset trick pour bordure radius
 
+icons:
+  # Remplace les SVG DSFR-specific (préfixe fr--*) par leurs équivalents Lucide.
+  # Le contenu du fichier change, le nom de classe DSFR (.fr-icon-fr--success-fill)
+  # ne bouge pas — les composants continuent de marcher. Les ~999 icones Remix
+  # de DSFR (déjà MIT, pas État-specific) restent telles quelles.
+  overrides:
+    fr--success-fill: circle-check
+    fr--success-line: circle-check
+    fr--warning-fill: triangle-alert
+    fr--warning-line: triangle-alert
+    fr--error-fill:   circle-x
+    fr--error-line:   circle-x
+    fr--info-fill:    info
+    fr--info-line:    info
+    fr--accessibility-fill: accessibility
+    fr--accessibility-line: accessibility
+    # Reste à mapper si besoin (lucide.dev a probablement un équivalent) :
+    #   fr--bold, fr--highlight, fr--quote-fill, fr--quote-line,
+    #   fr--alert-warning-fill, fr--alert-warning-2-fill,
+    #   fr--ear-off-*, fr--sign-language-*, fr--mental-disabilities-*,
+    #   fr--avalanches-*, fr--submersion-*, fr--capslock-line,
+    #   fr--equal-circle-fill, fr--theme-fill, fr--dailymotion-*, fr--tiktok-*,
+    #   fr--arrow-left-s-first-line, fr--arrow-left-s-line-double,
+    #   fr--arrow-right-s-last-line, fr--arrow-right-s-line-double
+
+  # Ajoute des icones Lucide accessibles via .fr-icon-<token>. Format court
+  # = string (le token sera = au nom Lucide). Format long pour les alias.
+  add:
+    - flame                          # → .fr-icon-flame, source = lucide flame.svg
+    - leaf                           # → .fr-icon-leaf
+    - { token: ademe-pin, name: map-pin }  # alias custom
+
 components:
   remove:
     - header

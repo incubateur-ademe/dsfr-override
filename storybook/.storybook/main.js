@@ -63,12 +63,12 @@ const config = {
 
   staticDirs: [
     './static',
+    // dist/ now holds dist/icons/ too (copied + Lucide-overlaid by the
+    // builder), so we don't need a separate mount for icons anymore.
     { from: '../../dist', to: 'dist' },
     { from: '../../dsfr/tool/example/img', to: 'img' },
-    // Icons + pictograms are referenced as dist/icons/* and dist/artwork/*
-    // in DSFR templates. Our builder doesn't copy those assets to dist/
-    // (they're not styled by us), so serve them straight from the submodule.
-    { from: '../../dsfr/src/dsfr/core/icon', to: 'dist/icons' },
+    // Pictograms are still served from the submodule — we don't (yet) curate
+    // or override them.
     { from: '../../dsfr/src/dsfr/core/asset/artwork', to: 'dist/artwork' },
     // The vanilla DSFR JS comes from the npm package — DSFR submodule itself
     // doesn't ship dist/. The stories need this for interactive components.

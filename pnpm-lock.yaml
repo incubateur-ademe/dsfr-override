@@ -21,6 +21,9 @@ importers:
       ejs4b:
         specifier: ^3.1.63
         version: 3.1.63(rollup@4.60.3)
+      lucide-static:
+        specifier: ^1.14.0
+        version: 1.14.0
       mqpacker:
         specifier: ^7.0.0
         version: 7.0.0
@@ -1600,6 +1603,9 @@ packages:
 
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
+
+  lucide-static@1.14.0:
+    resolution: {integrity: sha512-QnAHXC1nk8IXRBmO5ee9JcPiKEVeqf06tKF0bZipxlV++bwUVqvvliC3KA+beDg2lod+WXYIhHde5pQRHkUmqA==}
 
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
@@ -3735,6 +3741,8 @@ snapshots:
       highlight.js: 10.7.3
 
   lru-cache@10.4.3: {}
+
+  lucide-static@1.14.0: {}
 
   lz-string@1.5.0: {}
 

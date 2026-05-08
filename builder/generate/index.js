@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { generateFontFaceScss } from './font-face.js';
 import { generateShadowsScss } from './shadows.js';
 import { generateRadiusScss } from './radius.js';
+import { applyIconMapping, generateIconAddsScss } from './icons.js';
 
 /**
  * Materialize all SCSS overrides under <projectRoot>/overrides/ from a parsed
@@ -21,11 +22,18 @@ export function generateOverrides({ projectRoot, mapping, distDir }) {
   const overridesDir = join(projectRoot, 'overrides');
   if (!existsSync(overridesDir)) mkdirSync(overridesDir, { recursive: true });
 
+  // Icons: rsync DSFR icons → dist/icons/, apply Lucide overrides + adds.
+  // Done before the SCSS sections because addEntries feeds _icons.scss.
+  const iconResult = mapping
+    ? applyIconMapping({ projectRoot, mapping, distDir })
+    : { overridesApplied: 0, addsApplied: 0, addEntries: [] };
+
   const written = [];
   const sections = [
     { file: '_font-face.scss', content: mapping ? generateFontFaceScss(mapping.typography) : '' },
     { file: '_shadows.scss',   content: mapping ? generateShadowsScss(mapping.elevation)   : '' },
-    { file: '_radius.scss',    content: mapping ? generateRadiusScss(mapping['border-radius']) : '' }
+    { file: '_radius.scss',    content: mapping ? generateRadiusScss(mapping['border-radius']) : '' },
+    { file: '_icons.scss',     content: generateIconAddsScss(iconResult.addEntries) }
   ];
 
   const indexImports = [];
@@ -58,7 +66,12 @@ export function generateOverrides({ projectRoot, mapping, distDir }) {
 
   const fontsCopied = copyFonts({ projectRoot, mapping, distDir });
 
-  return { overridesIndex: indexPath, written, fontsCopied };
+  return {
+    overridesIndex: indexPath,
+    written,
+    fontsCopied,
+    iconsCopied: iconResult
+  };
 }
 
 function copyFonts({ projectRoot, mapping, distDir }) {
