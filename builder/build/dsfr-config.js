@@ -2,14 +2,14 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, writeFileS
 import { extname, join } from 'node:path';
 
 /**
- * Reproduce the subset of dsfr/tool/generate/{core,icon}.js needed for sass compilation,
- * so we don't have to run `yarn install` inside the submodule.
+ * Reproduce the subset of dsfr/tool/generate/* needed for sass compilation
+ * AND for the storybook (pictogram.json, icon.json), so we don't have to run
+ * `yarn install` inside the submodule.
  *
- * The DSFR pipeline imports two generated files via @import '../../../.config/<name>.scss':
- *   - config.scss : prefix/namespace/organisation from package.json
- *   - icon.scss   : icon registry built by walking core/icon/icons/<category>/*.svg
- *
- * Output goes into <dsfr>/.config/, which is in the submodule's .gitignore.
+ * Generated files go into <root>/.config/, which is in the submodule's
+ * .gitignore. Caller passes the workspace path during a build (so .config
+ * lives next to the workspace SCSS), and the submodule path before launching
+ * storybook (so dsfr/src/dsfr/**\/*.stories.js can resolve their @config refs).
  */
 export function generateDsfrConfig(dsfrRoot) {
   const configDir = join(dsfrRoot, '.config');
@@ -17,6 +17,22 @@ export function generateDsfrConfig(dsfrRoot) {
 
   generateCore(dsfrRoot, configDir);
   generateIconRegistry(dsfrRoot, configDir);
+  generatePictogramRegistry(dsfrRoot, configDir);
+  generateMiscStubs(configDir);
+}
+
+/**
+ * Storybook stories import .config/i18n.json and .config/colors.json. Building
+ * the real ones requires the upstream tool/classes/I18n + colors generator with
+ * yarn-installed deps (yaml, sass-true...). We provide empty-but-valid stubs:
+ * stories that try to lookup an i18n key get null (text falls back to keys),
+ * and color references get an empty registry — visually nothing breaks.
+ */
+function generateMiscStubs(configDir) {
+  const i18nPath = join(configDir, 'i18n.json');
+  if (!existsSync(i18nPath)) writeFileSync(i18nPath, '{}');
+  const colorsPath = join(configDir, 'colors.json');
+  if (!existsSync(colorsPath)) writeFileSync(colorsPath, '[]');
 }
 
 function generateCore(dsfrRoot, configDir) {
@@ -36,11 +52,13 @@ function generateIconRegistry(dsfrRoot, configDir) {
   const iconDir = join(dsfrRoot, 'src/dsfr/core/icon');
   if (!existsSync(iconDir)) {
     writeFileSync(join(configDir, 'icon.scss'), '$icons-config: (\n);\n');
+    writeFileSync(join(configDir, 'icon.json'), '[]');
     return;
   }
 
   const categories = readdirSync(iconDir).filter(f => lstatSync(join(iconDir, f)).isDirectory());
   let sass = '$icons-config: (\n';
+  const json = [];
   for (const category of categories) {
     const dir = join(iconDir, category);
     const icons = readdirSync(dir).filter(file =>
@@ -61,8 +79,38 @@ function generateIconRegistry(dsfrRoot, configDir) {
       }
       const p = `icons/${category}/${icon}`;
       sass += `  ${name}: ( family: '${family}', category: '${category}', path: '${p}' ),\n`;
+      json.push({ name, family, category, path: p });
     }
   }
   sass += ');\n';
   writeFileSync(join(configDir, 'icon.scss'), sass);
+  writeFileSync(join(configDir, 'icon.json'), JSON.stringify(json));
+}
+
+function generatePictogramRegistry(dsfrRoot, configDir) {
+  const pictoDir = join(dsfrRoot, 'src/dsfr/core/asset/artwork/pictograms');
+  if (!existsSync(pictoDir)) {
+    writeFileSync(join(configDir, 'pictogram.scss'), '$pictogram-config: (\n);\n');
+    writeFileSync(join(configDir, 'pictogram.json'), '[]');
+    return;
+  }
+
+  const categories = readdirSync(pictoDir).filter(f => lstatSync(join(pictoDir, f)).isDirectory());
+  let sass = '$pictogram-config: (\n';
+  const json = [];
+  for (const category of categories) {
+    const dir = join(pictoDir, category);
+    const items = readdirSync(dir).filter(file =>
+      lstatSync(join(dir, file)).isFile() && extname(file) === '.svg'
+    );
+    for (const item of items) {
+      const name = item.replace(/\.svg$/, '');
+      const p = `artwork/pictograms/${category}/${item}`;
+      sass += `  ${name}: ( category: '${category}', path: '${p}' ),\n`;
+      json.push({ name, category, path: p });
+    }
+  }
+  sass += ');\n';
+  writeFileSync(join(configDir, 'pictogram.scss'), sass);
+  writeFileSync(join(configDir, 'pictogram.json'), JSON.stringify(json));
 }

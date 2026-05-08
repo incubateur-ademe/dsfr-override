@@ -43,6 +43,10 @@ export function prepare(opts) {
   const { workspaceDsfr } = ensureWorkspace(projectRoot, dsfrRoot);
 
   generateDsfrConfig(workspaceDsfr);
+  // Also seed .config/ in the submodule itself — storybook stories live in
+  // dsfr/src/dsfr/**/*.stories.js and resolve their @config refs relatively.
+  // .config/ is in the submodule's .gitignore so git status stays clean.
+  generateDsfrConfig(dsfrRoot);
 
   if (!existsSync(distDir)) mkdirSync(distDir, { recursive: true });
 
