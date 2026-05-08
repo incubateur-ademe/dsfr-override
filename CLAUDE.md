@@ -17,12 +17,13 @@ La **Phase 2** réimplémente proprement la même cible avec une stratégie **ov
 
 ## Principe directeur
 
-**DSFR submodule = read-only.** Toutes les modifs passent par 5 mécanismes :
+**DSFR submodule = read-only.** Toutes les modifs passent par 6 mécanismes :
 1. **Workspace physique** (`.tmp/workspace/dsfr/`, copie complète, cache invalidé sur HEAD du submodule) où le builder patche `_options.scss` (palette LCh) et `component/{main,legacy,print}.scss` (filter components). Sass ne route pas les imports relatifs via les Importers customs, donc le workspace physique est la seule voie pour faire gagner notre `_options.scss` modifié.
-2. **Overrides SCSS** dans `overrides/` (générés depuis `mapping.yml` : `_font-face.scss`, `_shadows.scss`, `_radius.scss`) émis au top level — pas dans un `@layer ademe` (essayé puis abandonné : CSS Cascade Layers fait que `unlayered > layered`, et DSFR émet ses règles unlayered, donc le layer perdait silencieusement). La cascade naturelle "dernier déclaré gagne" suffit puisque nos overrides sont `@import`és en dernier.
+2. **Overrides SCSS** dans `overrides/` (générés depuis `mapping.yml` : `_font-face.scss`, `_shadows.scss`, `_radius.scss`, `_icons.scss`) émis au top level — pas dans un `@layer ademe` (essayé puis abandonné : CSS Cascade Layers fait que `unlayered > layered`, et DSFR émet ses règles unlayered, donc le layer perdait silencieusement). La cascade naturelle "dernier déclaré gagne" suffit puisque nos overrides sont `@import`és en dernier.
 3. **Manual overrides** : fichiers SCSS curated tracked (ex : `overrides/_card-fix.scss`) listés dans `mapping.yml.manual-overrides` et `@import`és absolument dans `_index.scss`.
 4. **PostCSS pipeline** (mqpacker + dedup + cssnano `--minify` + banner ADEME inline) — opt-out via `mapping.yml.post-css.enabled: false`.
 5. **Post-process sed** sur `dist/*.css|js` pour le rename des préfixes (`blue-france` → `blue-ate`, `red-marianne` → `red-laura`), avec safety-check qui flag les occurrences isolées (commentaires/prose).
+6. **Pipeline icônes** : `dsfr/src/dsfr/core/icon/**` rsync vers `dist/icons/**`, puis `mapping.icons.overrides` remplace les `fr--*` par leurs équivalents `lucide-static`, et `mapping.icons.add` ajoute des `.fr-icon-<token>` à la cascade via `_icons.scss`.
 
 À la fin de chaque build, `git status dsfr/` doit être propre — le workspace `.tmp/` est jetable, et `.config/` du submodule est dans son propre `.gitignore`.
 

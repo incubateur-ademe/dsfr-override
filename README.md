@@ -72,6 +72,7 @@ La Phase 1 du projet (dans `../dsfr/`) a fait un fork direct pour valider la cib
 - `CLAUDE.md` — contexte projet pour assistant IA
 - `docs/phase1-poc-report.md` — rapport Phase 1 + spec architecturale Phase 2 (source de vérité)
 - `docs/implementation-plan.md` — plan d'exécution séquencé, état d'avancement
+- `docs/icons.md` — pipeline d'icônes (rsync DSFR + Lucide overrides + adds)
 - `docs/storybook.md` — comment le storybook est câblé sur le submodule DSFR
 - `docs/example.md` — page témoin et serveur statique
 - `visual-references/` — captures de la cible visuelle à reproduire
