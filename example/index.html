@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr" data-fr-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test — DSFR ADEME (Phase 2 builder)</title>
+  <link rel="stylesheet" href="../dist/dsfr-ademe.css">
+  <style>
+    body { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    .ademe-section { margin-block: 3rem; }
+    .ademe-section > h2 { margin-bottom: 1rem; }
+    .ademe-grade-row { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 0.25rem; margin-bottom: 1rem; }
+    .ademe-grade { padding: 1rem 0.25rem; text-align: center; border-radius: 0.5rem; font-family: monospace; font-size: 0.7rem; font-weight: 700; }
+    .ademe-grade--dark { color: #fff; }
+    .ademe-grade--light { color: #161616; }
+    .ademe-toolbar { position: sticky; top: 0; background: var(--background-default-grey); padding: 0.75rem 0; z-index: 10; border-bottom: 1px solid var(--border-default-grey); display: flex; gap: 0.5rem; align-items: center; }
+    .ademe-stack { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-start; }
+    .ademe-stack > * { min-width: 0; }
+    .ademe-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+  </style>
+</head>
+<body>
+
+  <div class="ademe-toolbar">
+    <strong>Test ADEME builder</strong>
+    <span style="flex: 1"></span>
+    <span id="fonts-status" style="font-family: monospace; font-size: 0.8rem; opacity: 0.7"></span>
+    <button class="fr-btn fr-btn--secondary fr-btn--sm" id="theme-light">Light</button>
+    <button class="fr-btn fr-btn--secondary fr-btn--sm" id="theme-dark">Dark</button>
+  </div>
+
+  <h1>DSFR ADEME — page de test</h1>
+  <p class="fr-text--lead">Témoin visuel du builder Phase 2. Charge <code>dist/dsfr-ademe.css</code> et les fontes de <code>dist/fonts/</code>.</p>
+  <p>Vérifications : typographie <strong>Public Sans</strong> sous le nom CSS « Marianne », palette <strong>Blue ATE</strong> et <strong>Red Laura</strong> issue du remapping LCh, ombres neutres, border-radius 0,75 rem, absence des composants header/footer.</p>
+
+  <section class="ademe-section" style="border: 1px solid var(--border-default-grey); padding: 1rem; border-radius: 0.5rem; background: var(--background-alt-grey)">
+    <h2 style="margin-top: 0">Diagnostic typographie</h2>
+    <p>Comparaison directe des trois familles. Si les trois lignes ont des largeurs <strong>différentes</strong>, l'override <code>Marianne → PublicSans</code> est bien appliqué.</p>
+    <div style="display: grid; grid-template-columns: 220px 1fr; gap: 0.25rem 1rem; align-items: baseline; font-size: 1.1rem">
+      <div style="font-family: monospace; opacity: 0.7">font-family: 'Marianne'</div>
+      <div style="font-family: 'Marianne', monospace" id="probe-marianne">The quick brown fox 0123456789</div>
+      <div style="font-family: monospace; opacity: 0.7">font-family: 'NoSuchFont'</div>
+      <div style="font-family: 'NoSuchFont', monospace">The quick brown fox 0123456789</div>
+      <div style="font-family: monospace; opacity: 0.7">font-family: monospace</div>
+      <div style="font-family: monospace">The quick brown fox 0123456789</div>
+    </div>
+    <pre id="font-debug" style="background: #fff; padding: 0.5rem; margin-top: 1rem; font-size: 0.75rem; overflow: auto; max-height: 200px"></pre>
+  </section>
+
+  <section class="ademe-section">
+    <h2>Typographie</h2>
+    <p class="fr-text--lg">Public Sans Light <span class="fr-text--light">300</span>, Regular <span>400</span>, Medium <strong style="font-weight: 500">500</strong>, Bold <strong>700</strong>.</p>
+    <p>Texte courant : <em>italique</em>, <strong>gras</strong>, <strong><em>gras italique</em></strong>. <code>code monospace</code>.</p>
+    <h3>Spectral (alt)</h3>
+    <p class="fr-text--alt">Spectral Regular conservée pour les citations et textes décoratifs.</p>
+  </section>
+
+  <section class="ademe-section">
+    <h2>Palette Blue ATE — anchor <code>#4950FB</code></h2>
+    <p class="fr-text--sm">L*=44,4 C*=99,7 h°=301°. Grades calculés via le profil LCh.</p>
+    <div class="ademe-grade-row">
+      <div class="ademe-grade ademe-grade--dark" style="background:#1e193a">75</div>
+      <div class="ademe-grade ademe-grade--dark" style="background:#241f45">100</div>
+      <div class="ademe-grade ademe-grade--dark" style="background:#2b254d">125</div>
+      <div class="ademe-grade ademe-grade--dark" style="background:#2e2d87">200</div>
+      <div class="ademe-grade ademe-grade--dark" style="background:#001977">sun-157</div>
+      <div class="ademe-grade ademe-grade--dark" style="background:#4950fb">main-444</div>
+      <div class="ademe-grade ademe-grade--light" style="background:#907fff">625</div>
+      <div class="ademe-grade ademe-grade--light" style="background:#d4c6ff">850</div>
+      <div class="ademe-grade ademe-grade--light" style="background:#e9e1ff">925</div>
+      <div class="ademe-grade ademe-grade--light" style="background:#f0ebff">950</div>
+      <div class="ademe-grade ademe-grade--light" style="background:#f7f4ff">975</div>
+    </div>
+  </section>
+
+  <section class="ademe-section">
+    <h2>Palette Red Laura — anchor <code>#FF3333</code></h2>
+    <p class="fr-text--sm">L*=56,0 C*=89,3 h°=34°.</p>
+    <div class="ademe-grade-row">
+      <div class="ademe-grade ademe-grade--dark" style="background:#37120c">75</div>
+      <div class="ademe-grade ademe-grade--dark" style="background:#411712">100</div>
+      <div class="ademe-grade ademe-grade--dark" style="background:#491d17">125</div>
+      <div class="ademe-grade ademe-grade--dark" style="background:#770b0f">200</div>
+      <div class="ademe-grade ademe-grade--dark" style="background:#560200">sun-157</div>
+      <div class="ademe-grade ademe-grade--dark" style="background:#ff3333">main-560</div>
+      <div class="ademe-grade ademe-grade--light" style="background:#f95c4e">625</div>
+      <div class="ademe-grade ademe-grade--light" style="background:#ffbfb4">850</div>
+      <div class="ademe-grade ademe-grade--light" style="background:#ffded8">925</div>
+      <div class="ademe-grade ademe-grade--light" style="background:#ffe9e5">950</div>
+      <div class="ademe-grade ademe-grade--light" style="background:#fff3f1">975</div>
+    </div>
+  </section>
+
+  <section class="ademe-section">
+    <h2>Boutons</h2>
+    <div class="ademe-stack">
+      <button class="fr-btn">Primary</button>
+      <button class="fr-btn fr-btn--secondary">Secondary</button>
+      <button class="fr-btn fr-btn--tertiary">Tertiary</button>
+      <button class="fr-btn fr-btn--tertiary-no-outline">Tertiary no outline</button>
+      <button class="fr-btn" disabled>Disabled</button>
+    </div>
+    <h3 style="margin-top: 1rem">Tailles</h3>
+    <div class="ademe-stack">
+      <button class="fr-btn fr-btn--sm">Small</button>
+      <button class="fr-btn">Medium</button>
+      <button class="fr-btn fr-btn--lg">Large</button>
+    </div>
+  </section>
+
+  <section class="ademe-section">
+    <h2>Formulaires (border-radius 0,75 rem)</h2>
+    <div class="fr-grid-row fr-grid-row--gutters">
+      <div class="fr-col-12 fr-col-md-6">
+        <div class="fr-input-group">
+          <label class="fr-label" for="t-name">Nom complet
+            <span class="fr-hint-text">Indiquez votre nom et votre prénom</span>
+          </label>
+          <input class="fr-input" type="text" id="t-name" placeholder="Saisissez votre nom">
+        </div>
+
+        <div class="fr-select-group fr-mt-2w">
+          <label class="fr-label" for="t-region">Région</label>
+          <select class="fr-select" id="t-region">
+            <option value="" selected>— Sélectionnez —</option>
+            <option>Île-de-France</option>
+            <option>Provence-Alpes-Côte d’Azur</option>
+            <option>Occitanie</option>
+          </select>
+        </div>
+      </div>
+      <div class="fr-col-12 fr-col-md-6">
+        <div class="fr-input-wrap fr-input-wrap--addon">
+          <span class="fr-input-wrap__label">€</span>
+          <input class="fr-input" type="number" placeholder="Montant">
+          <button class="fr-btn">Valider</button>
+        </div>
+
+        <div class="fr-mt-2w" style="display: flex; gap: 0.5rem; flex-wrap: wrap">
+          <span class="fr-badge fr-badge--success">Succès</span>
+          <span class="fr-badge fr-badge--info">Info</span>
+          <span class="fr-badge fr-badge--warning">Attention</span>
+          <span class="fr-badge fr-badge--error">Erreur</span>
+          <span class="fr-badge">Default</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ademe-section">
+    <h2>Alertes</h2>
+    <div class="fr-alert fr-alert--info fr-mb-2w">
+      <h3 class="fr-alert__title">Information</h3>
+      <p>Le builder Phase 2 charge <code>dist/dsfr-ademe.css</code> et les PublicSans depuis <code>dist/fonts/</code>.</p>
+    </div>
+    <div class="fr-alert fr-alert--success fr-mb-2w">
+      <h3 class="fr-alert__title">Succès</h3>
+      <p>La palette ADEME est appliquée et les ratios WCAG matchent la cible Phase 1.</p>
+    </div>
+    <div class="fr-alert fr-alert--warning fr-mb-2w">
+      <h3 class="fr-alert__title">Attention</h3>
+      <p>Border-radius 0,75 rem visible sur cette alerte (override <code>@layer ademe</code>).</p>
+    </div>
+    <div class="fr-alert fr-alert--error">
+      <h3 class="fr-alert__title">Erreur</h3>
+      <p>Marqueur d’erreur — contrôle de la couleur Red Laura.</p>
+    </div>
+  </section>
+
+  <section class="ademe-section">
+    <h2>Cards (border-radius + box-shadow inset)</h2>
+    <div class="ademe-cards">
+      <div class="fr-card">
+        <div class="fr-card__body">
+          <div class="fr-card__content">
+            <h3 class="fr-card__title"><a href="#">Card par défaut</a></h3>
+            <p class="fr-card__desc">Border-radius 0,75 rem, overflow hidden, bordure via <code>box-shadow: inset</code> du card-fix manuel.</p>
+            <div class="fr-card__start">
+              <ul class="fr-tags-group">
+                <li><span class="fr-tag fr-tag--sm">Étiquette</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fr-card fr-card--shadow">
+        <div class="fr-card__body">
+          <div class="fr-card__content">
+            <h3 class="fr-card__title"><a href="#">Card avec shadow</a></h3>
+            <p class="fr-card__desc">Variante <code>--shadow</code> : utilise <code>--shadow-color</code> overridé en <code>rgba(0,0,0,0.16)</code>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="fr-card fr-card--no-border">
+        <div class="fr-card__body">
+          <div class="fr-card__content">
+            <h3 class="fr-card__title"><a href="#">Card sans bordure</a></h3>
+            <p class="fr-card__desc">Variante <code>--no-border</code> : pas de bordure car le card-fix l’exclut explicitement.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ademe-section">
+    <h2>Vérification rename — variables CSS</h2>
+    <p class="fr-text--sm">Le post-process a renommé <code>blue-france</code> en <code>blue-ate</code> et <code>red-marianne</code> en <code>red-laura</code>. Les classes utilitaires <code>.fr-*--blue-ate</code> vivent dans <code>utility.css</code> (pas encore dans notre build), mais les variables CSS sont déjà renommées et utilisables.</p>
+    <div class="ademe-stack" style="align-items: center">
+      <span style="display: inline-block; padding: 0.5rem 1rem; background: var(--background-action-high-blue-ate); color: var(--text-inverted-blue-ate); border-radius: 0.5rem">--background-action-high-blue-ate</span>
+      <span style="display: inline-block; padding: 0.5rem 1rem; background: var(--background-action-high-red-laura); color: var(--text-inverted-red-laura); border-radius: 0.5rem">--background-action-high-red-laura</span>
+      <span style="display: inline-block; padding: 0.5rem 1rem; color: var(--text-action-high-blue-ate); border: 2px solid var(--border-default-blue-ate); border-radius: 0.5rem">--text-action-high-blue-ate</span>
+      <span style="display: inline-block; padding: 0.5rem 1rem; color: var(--text-action-high-red-laura); border: 2px solid var(--border-default-red-laura); border-radius: 0.5rem">--text-action-high-red-laura</span>
+    </div>
+    <p class="fr-text--sm" id="rename-check"></p>
+  </section>
+
+  <script>
+    const root = document.documentElement;
+    document.getElementById('theme-light').addEventListener('click', () => root.setAttribute('data-fr-theme', 'light'));
+    document.getElementById('theme-dark').addEventListener('click', () => root.setAttribute('data-fr-theme', 'dark'));
+
+    const rootCs = getComputedStyle(document.documentElement);
+    const renameCheck = document.getElementById('rename-check');
+    const renamed = rootCs.getPropertyValue('--background-action-high-blue-ate').trim();
+    const original = rootCs.getPropertyValue('--background-action-high-blue-france').trim();
+    if (renamed && !original) renameCheck.textContent = `✓ Variables renommées : --background-action-high-blue-ate = ${renamed} (et 0 occurrence du nom blue-france)`;
+    else if (renamed && original) renameCheck.textContent = `⚠ Les deux noms cohabitent : --blue-ate=${renamed}, --blue-france=${original}`;
+    else renameCheck.textContent = `✗ Rename non appliqué : --blue-ate vide. Lance pnpm build et hard-reload (cmd+shift+R).`;
+
+    document.fonts.ready.then(() => {
+      const measure = (family) => {
+        const c = document.createElement('canvas').getContext('2d');
+        c.font = `400 50px ${family}`;
+        return c.measureText('The quick brown fox jumps over the lazy dog 0123456789').width;
+      };
+      const wMarianne = measure(`'Marianne', monospace`);
+      const wMonospace = measure(`monospace`);
+      const wNoSuch = measure(`'NoSuchFont', monospace`);
+
+      const overrideActive = wMarianne !== wMonospace && wMarianne !== wNoSuch;
+      const status = document.getElementById('fonts-status');
+      status.textContent = overrideActive ? '✓ Marianne → PublicSans' : '✗ fallback (PublicSans not loaded)';
+      status.style.color = overrideActive ? 'var(--text-default-success, green)' : 'var(--text-default-error, red)';
+
+      const loaded = [...document.fonts]
+        .filter(f => f.status === 'loaded')
+        .map(f => `${f.family} ${f.weight} ${f.style}`);
+      const fontFaceRules = [];
+      for (const sh of document.styleSheets) {
+        try {
+          for (const r of sh.cssRules) {
+            if (r.cssText && r.cssText.includes('@font-face')) {
+              const src = (r.style.src || '').match(/url\("([^"]+)"\)\s*format\("woff2?"\)/);
+              fontFaceRules.push(`${r.style.fontFamily} ${r.style.fontWeight} ${r.style.fontStyle}: ${src ? src[1] : '?'}`);
+            }
+          }
+        } catch (e) {}
+      }
+      const debug = document.getElementById('font-debug');
+      debug.textContent = [
+        `widths: 'Marianne'=${wMarianne.toFixed(1)} | monospace=${wMonospace.toFixed(1)} | 'NoSuchFont'=${wNoSuch.toFixed(1)}`,
+        `result: ${overrideActive ? 'PublicSans loaded under name Marianne' : 'fallback active — rebuild dist? hard-reload?'}`,
+        ``,
+        `Loaded fonts (${loaded.length}):`,
+        ...loaded.map(s => '  ' + s),
+        ``,
+        `@font-face rules in CSS (${fontFaceRules.length}, last wins per family/weight/style):`,
+        ...fontFaceRules.map(s => '  ' + s)
+      ].join('\n');
+    });
+  </script>
+</body>
+</html>

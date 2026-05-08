@@ -1,7 +1,7 @@
-@layer ademe {
-  .fr-card:not(.fr-card--no-border):not(.fr-card--shadow) {
-    background-image: none;
-    padding: 0;
-    box-shadow: inset 0 0 0 1px var(--border-default-grey);
-  }
+// Card border via box-shadow inset trick: respects border-radius on rounded
+// corners, unlike border. Phase 1 carry-over.
+.fr-card:not(.fr-card--no-border):not(.fr-card--shadow) {
+  background-image: none;
+  padding: 0;
+  box-shadow: inset 0 0 0 1px var(--border-default-grey);
 }

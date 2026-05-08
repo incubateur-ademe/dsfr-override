@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { prepare } from './prepare.js';
 import { compile } from './compile.js';
 import { restore } from './restore.js';
+import { postProcess } from './post-process.js';
 
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -14,6 +15,7 @@ async function build() {
   const input = prepare({ projectRoot: PROJECT_ROOT });
   const result = await compile(input);
   const status = await restore({ projectRoot: PROJECT_ROOT });
+  postProcess({ distDir: input.distDir, mapping: input.mapping });
   return { ...result, clean: status.clean, dirty: status.dirty };
 }
 
@@ -29,7 +31,7 @@ test('build: produces a sane DSFR-shaped CSS', async () => {
   const css = readFileSync(out, 'utf8');
   assert.ok(css.includes('.fr-btn'), 'contains .fr-btn');
   assert.ok(css.includes('.fr-card'), 'contains .fr-card');
-  assert.ok(css.includes('--blue-france-'), 'contains DSFR CSS variables');
+  assert.ok(css.includes('--blue-ate-'), 'contains DSFR CSS variables (post-rename)');
   assert.ok(css.includes('@media print'), 'contains print rules');
 
   assert.ok(r.clean, `dsfr/ submodule should be clean after build, got:\n${r.dirty}`);
@@ -38,10 +40,10 @@ test('build: produces a sane DSFR-shaped CSS', async () => {
 test('build: ADEME mapping injects LCh palette into combined shade vars', async () => {
   await build();
   const css = readFileSync(join(PROJECT_ROOT, 'dist', 'dsfr-ademe.css'), 'utf8');
-  // Phase 1 reference values — the combined shade vars DSFR emits should now hold ours.
-  assert.ok(css.includes('--blue-france-sun-113-625: #001977'), 'blue strong (light) → ADEME sun-157');
-  assert.ok(css.includes('--blue-france-main-525: #4950fb'), 'blue main → ADEME main-444 anchor');
-  assert.ok(css.includes('--red-marianne-main-472: #ff3333'), 'red main → ADEME main-560 anchor');
+  // Phase 1 reference values — combined shade vars + post-rename family names.
+  assert.ok(css.includes('--blue-ate-sun-113-625: #001977'), 'blue strong (light) → ADEME sun-157');
+  assert.ok(css.includes('--blue-ate-main-525: #4950fb'), 'blue main → ADEME main-444 anchor');
+  assert.ok(css.includes('--red-laura-main-472: #ff3333'), 'red main → ADEME main-560 anchor');
 });
 
 test('build: typography/shadow/radius overrides reach the final CSS', async () => {
@@ -50,9 +52,15 @@ test('build: typography/shadow/radius overrides reach the final CSS', async () =
   assert.ok(css.includes('PublicSans-Regular.woff2'), 'PublicSans @font-face emitted');
   assert.ok(css.includes('--shadow-color: rgba(0, 0, 0, 0.16)'), 'neutral shadow color (light) applied');
   assert.ok(css.includes('--shadow-color: rgba(0, 0, 0, 0.32)'), 'neutral shadow color (dark) applied');
-  assert.ok(css.includes('@layer ademe'), '@layer ademe used for radius targets');
   assert.ok(/\.fr-card\s*\{[^}]*border-radius:\s*0\.75rem/.test(css), '.fr-card border-radius 0.75rem');
   assert.ok(/\.fr-card\s*\{[^}]*overflow:\s*hidden/.test(css), '.fr-card overflow: hidden');
+});
+
+test('build: post-process rename leaves no upstream family name behind', async () => {
+  await build();
+  const css = readFileSync(join(PROJECT_ROOT, 'dist', 'dsfr-ademe.css'), 'utf8');
+  assert.equal((css.match(/blue-france/g) ?? []).length, 0, 'all blue-france renamed to blue-ate');
+  assert.equal((css.match(/red-marianne/g) ?? []).length, 0, 'all red-marianne renamed to red-laura');
 });
 
 test('build: copies font files to dist/fonts/', async () => {

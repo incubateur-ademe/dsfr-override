@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { generateFontFaceScss } from './font-face.js';
 import { generateShadowsScss } from './shadows.js';
@@ -62,25 +62,38 @@ export function generateOverrides({ projectRoot, mapping, distDir }) {
 }
 
 function copyFonts({ projectRoot, mapping, distDir }) {
-  const primary = mapping?.typography?.primary;
-  if (!primary?.['files-source'] || !primary?.weights) return 0;
-
-  const sourceDir = resolve(projectRoot, primary['files-source']);
-  if (!existsSync(sourceDir)) return 0;
-
   const distFonts = join(distDir, 'fonts');
-  if (!existsSync(distFonts)) mkdirSync(distFonts, { recursive: true });
-
   let count = 0;
-  for (const variants of Object.values(primary.weights)) {
-    for (const fileBase of Object.values(variants)) {
-      for (const ext of ['woff2', 'woff']) {
-        const src = join(sourceDir, `${fileBase}.${ext}`);
-        const dst = join(distFonts, `${fileBase}.${ext}`);
-        if (existsSync(src)) {
-          cpSync(src, dst);
-          count++;
+
+  // Primary: user-supplied font files at typography.primary.files-source.
+  const primary = mapping?.typography?.primary;
+  if (primary?.['files-source'] && primary?.weights) {
+    const sourceDir = resolve(projectRoot, primary['files-source']);
+    if (existsSync(sourceDir)) {
+      if (!existsSync(distFonts)) mkdirSync(distFonts, { recursive: true });
+      for (const variants of Object.values(primary.weights)) {
+        for (const fileBase of Object.values(variants)) {
+          for (const ext of ['woff2', 'woff']) {
+            const src = join(sourceDir, `${fileBase}.${ext}`);
+            const dst = join(distFonts, `${fileBase}.${ext}`);
+            if (existsSync(src)) { cpSync(src, dst); count++; }
+          }
         }
+      }
+    }
+  }
+  // Alt: when "keep", we leave DSFR's @font-face declarations intact and just
+  // ferry the upstream files from the submodule into dist/fonts/, so Spectral
+  // (or whatever DSFR ships as alt) actually loads instead of 404'ing.
+  if (mapping?.typography?.alt === 'keep') {
+    const dsfrFonts = join(projectRoot, 'dsfr/src/dsfr/core/asset/fonts');
+    if (existsSync(dsfrFonts)) {
+      if (!existsSync(distFonts)) mkdirSync(distFonts, { recursive: true });
+      for (const f of readdirSync(dsfrFonts)) {
+        if (f.startsWith('Marianne')) continue;
+        const src = join(dsfrFonts, f);
+        const dst = join(distFonts, f);
+        if (existsSync(src)) { cpSync(src, dst); count++; }
       }
     }
   }

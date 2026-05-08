@@ -55,6 +55,7 @@ border-radius:
   targets:
     - { selector: ".fr-input",       value: "0.75rem" }
     - { selector: ".fr-select",      value: "0.75rem" }
+    - { selector: ".fr-btn",         value: "0.75rem" }
     - { selector: ".fr-badge",       value: "0.75rem" }
     - { selector: ".fr-card",        value: "0.75rem", overflow: true }
     - { selector: ".fr-alert",       value: "0.75rem" }
