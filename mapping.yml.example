@@ -73,3 +73,8 @@ post-process:
   rename:
     enabled: true
     safety-check: true
+
+post-css:                              # mqpacker + dedup + cssnano (--minify) + banner ADEME
+  enabled: true                        # défaut true; mettre false pour debug le CSS brut sass
+  banner: true                         # défaut true
+  # banner-text: "..."                 # absent → texte par défaut généré (cite la version DSFR)

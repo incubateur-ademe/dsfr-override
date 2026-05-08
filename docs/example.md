@@ -1,0 +1,60 @@
+# Page témoin (`example/`)
+
+Smoke test visuel du builder, sans dépendance lourde. Une seule page HTML qui exerce les composants DSFR critiques avec notre `dist/`, plus un panneau de diagnostic typo intégré.
+
+## Lancer
+
+```bash
+node builder/serve.js
+# → http://localhost:8080/example/index.html
+```
+
+(`PORT=xxxx node builder/serve.js` pour changer de port.)
+
+Le serveur est ~50 lignes de Node natif (`node:http` + `node:fs`), zéro dépendance. Sert tout le projet à la racine, MIME types gérés pour CSS / JS / fonts / SVG.
+
+## Ce que la page teste
+
+| Section                | Vérifie                                                                                  |
+|------------------------|------------------------------------------------------------------------------------------|
+| Diagnostic typographie | `Marianne` (nom CSS) résout vers les fichiers Public Sans (canvas measurement)           |
+| Typographie            | Public Sans Light / Regular / Medium / Bold + italiques + Spectral pour `fr-text--alt`   |
+| Palette Blue ATE       | Les 11 grades (75 → 975 + sun-157 + main-444) en swatches HEX-codés                      |
+| Palette Red Laura      | Idem (sun-157 ajouté via `add-grades`, main-560 via `recalibrate-grade`)                 |
+| Boutons                | Primary / Secondary / Tertiary / Tertiary-no-outline / Disabled, tailles SM/MD/LG        |
+| Formulaires            | `.fr-input` / `.fr-select` à 4 angles arrondis 0.75rem, addon avec coins asymétriques    |
+| Badges                 | Success / Info / Warning / Error / Default arrondis                                      |
+| Alertes                | Info / Succès / Warning / Erreur arrondis                                                |
+| Cards                  | Default (border via box-shadow inset du card-fix) / shadow / no-border                   |
+| Vérification rename    | Classes utilitaires `.fr-background-action-high--blue-ate` (utility-ademe.css)           |
+| Variables CSS          | Auto-check : `--background-action-high-blue-ate = #001977` et 0 occurrence blue-france   |
+
+## Le panneau de diagnostic typographie
+
+C'est l'élément le plus utile : confirme que la fonte effectivement rendue est bien Public Sans, pas Marianne du système (Public Sans et Marianne se ressemblent visuellement, l'œil est mauvais juge).
+
+Méthode : on mesure la largeur d'une chaîne de référence avec trois `font-family` :
+
+```js
+const w1 = measure(`'Marianne', monospace`)   // notre @font-face
+const w2 = measure(`monospace`)                // fallback
+const w3 = measure(`'NoSuchFont', monospace`)  // fallback aussi
+```
+
+Si `w1 ≠ w2` et `w1 ≠ w3`, c'est qu'une fonte custom est chargée sous le nom `Marianne` — donc nos `@font-face` PublicSans gagnent. Le panneau affiche le verdict en clair (`✓ Marianne → PublicSans` ou `✗ fallback`) plus la liste complète des fontes chargées (`document.fonts`) et toutes les règles `@font-face` du CSS avec leur src effectif.
+
+## Pourquoi ça existe en plus du Storybook
+
+- **Storybook démarre en ~30 s** (pré-bundling vite), recharge à chaque modif. Bon pour explorer 322 composants × variantes.
+- **La page témoin démarre en <1 s**, charge un seul HTML statique. Bon pour vérifier "est-ce que mon dernier `pnpm build` n'a rien cassé d'évident" en 5 secondes chrono.
+
+Le surcoût est négligeable (~250 lignes HTML + 50 lignes Node), et l'usage est complémentaire.
+
+## Ajouter un cas
+
+`example/index.html` est édité à la main. Pour ajouter une vérification :
+
+1. Ajouter une `<section class="ademe-section">` avec le composant à tester.
+2. Si la vérif doit être automatisée, lui donner un `id` et l'inspecter dans le `<script>` final (ex : `getComputedStyle` puis assertion + affichage du résultat dans `#font-debug` ou un nouveau placeholder).
+
+Pas de framework, pas de build étape — c'est intentionnel : on teste le CSS final tel qu'un consommateur ADEME le verra.

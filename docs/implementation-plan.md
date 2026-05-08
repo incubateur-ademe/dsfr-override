@@ -3,138 +3,166 @@
 > Lire d'abord : `phase1-poc-report.md` § "Phase 2 — Builder" pour la spec complète.
 > Cible visuelle : `../visual-references/poc-ademe-v3-fullpage.png`.
 
+## Statut
+
+**Steps 0-10 livrés.** Step 11 (Playwright visual diff) **abandonné** au profit d'un autre angle de vérification : `example/index.html` (smoke test 5 s) + Storybook (322 stories DSFR exercées contre notre dist).
+
+PostCSS pipeline ("plus tard") **livré** également.
+
+| Step | Status | Commit (head) |
+|---|---|---|
+| 0 — Bootstrap | ✓ | `1d7115b` |
+| 1 — Primitives LCh | ✓ | `b5278cf` |
+| 2 — Build wrapper | ✓ | `9011eef` (+ refacto workspace au Step 3) |
+| 3 — Generate palette | ✓ | `b24a185` |
+| 4 — Generate font-face | ✓ | `7f77107` |
+| 5 — Generate shadows + radius | ✓ | `7f77107` |
+| 6 — Manual overrides + components.remove | ✓ | `d8182af` |
+| 7 — Post-process rename | ✓ | `6328481` |
+| 8 — Validate | ✓ | `6328481` |
+| 9 — CLI + DX | ✓ | `6328481` |
+| 10 — CI + automation | ✓ | `6328481` |
+| 11 — Preview Playwright | ✗ abandonné | — |
+| Bonus — Storybook + page témoin + utility build | ✓ | `82307e7` + `feda...` |
+| Bonus — PostCSS pipeline (mqpacker + dedup + cssnano + banner ADEME) | ✓ | (head) |
+
+**46 tests passent** (10 LCh, 4 palette, 13 build e2e, 19 validate). `pnpm validate --strict` passe sans warning.
+
 ## Principe vérifié en Phase 1
 
 Le rendu cible est atteignable. Phase 1 l'a prouvé en patchant directement les sources DSFR. Phase 2 reproduit le même rendu via overrides, sans toucher au submodule.
 
 ## Critère de succès
 
-Le builder, lancé avec `mapping.yml.example`, produit un `dist/dsfr-ademe.css` visuellement **identique** à la sortie Phase 1 (à comparer pixel-près sur les screenshots de référence).
+Le builder, lancé avec `mapping.yml.example`, produit un `dist/dsfr-ademe.css` visuellement **identique** à la sortie Phase 1. Vérifié à la fois :
 
-## Étapes
+- Sur la page témoin (`example/index.html`) — palette ADEME (`--blue-ate-sun-113-625 = #001977`), fonts (Public Sans confirmée par canvas measurement), border-radius `0.75rem` partout, card-fix box-shadow inset, header/footer absents.
+- Sur le storybook DSFR (`pnpm storybook`) — les 322 stories DSFR upstream rendues avec notre CSS, switcher light/dark fonctionnel, 0 erreur console hors 404 d'icônes vendor.
+- Sur les ratios WCAG : matchent les valeurs Phase 1 documentées (sun-157=14.94, main-444=5.49, etc.) à ±0.02 près.
 
-### Step 0 — Bootstrap (0.5j)
+## Étapes (rétrospective)
 
-- [ ] `git init` + `git submodule add https://github.com/GouvernementFR/dsfr.git dsfr`
-- [ ] Pin la version : `cd dsfr && git checkout v1.14.4`
-- [ ] `package.json` minimal (Node ≥20, ESM, scripts `build`, `validate`, `generate`)
-- [ ] Placeholder `builder/index.js` avec parsing CLI basique
-- [ ] Copier les fontes `PublicSans-*.woff{2,}` dans `assets/fonts/` (récupérables depuis `../dsfr/src/dsfr/core/asset/fonts/` après Phase 1)
+### Step 0 — Bootstrap ✓
 
-### Step 1 — Primitives LCh (0.5j)
+- `git init` + `git submodule add` DSFR pinné à v1.14.4
+- `package.json` ESM + Node ≥20
+- `builder/index.js` placeholder CLI
+- 16 fichiers Public Sans copiés dans `assets/fonts/`
 
-`builder/lch.js` — fonctions pures, pas de dépendance externe :
+### Step 1 — Primitives LCh ✓
 
-- [ ] `hexToRgb(hex)` / `rgbToHex(rgb)` (sRGB 0-1)
-- [ ] `srgbToLinear(c)` / `linearToSrgb(c)` (gamma)
-- [ ] `xyzFromLinearRgb(rgb)` / `linearRgbFromXyz(xyz)` (matrice D65)
-- [ ] `labFromXyz(xyz)` / `xyzFromLab(lab)`
-- [ ] `lchFromLab(lab)` / `labFromLch(lch)`
-- [ ] `hexToLch(hex)` / `lchToHex(L, C, h)` avec dichotomie pour clamp gamut
-- [ ] `relativeLuminance(hex)` (WCAG)
-- [ ] `contrastRatio(hex1, hex2)` (WCAG)
-- [ ] Tests unitaires (au moins valider sur les 22 valeurs de la palette Phase 1)
+`builder/lch.js` — 13 fonctions exportées, chaîne sRGB → linear → XYZ(D65) → Lab → LCh, dichotomie de clamp gamut sur 30 itérations dans `lchToHex`. 10 tests via `node:test` natif (zéro dep). Anchors Phase 1 vérifiés à ±0.2 sur L*/C*/h°, ratios WCAG documentés à ±0.02.
 
-### Step 2 — Build wrapper minimal (1-2j)
+### Step 2 — Build wrapper ✓
 
-`builder/build/` — squelette du pipeline sans transformations encore :
+Évolution importante par rapport au plan initial :
 
-- [ ] `prepare.js` : crée un workspace temporaire qui inclut le dsfr/ submodule + un point d'entrée custom qui import `dsfr/src/dsfr/dsfr.scss` + `overrides/_index.scss`
-- [ ] `compile.js` : invoque le build DSFR (sass + rollup) sur le workspace
-- [ ] `restore.js` : try/finally garantissant que `git status dsfr/` est clean après build
-- [ ] Sanity check : un build "vide" (overrides/_index.scss vide) doit produire un dsfr.css identique au DSFR original
+- **Plan initial** : workspace tmp + mask/restore des `.package.yml` dans `dsfr/`.
+- **Réalité** : workspace **physique** (`.tmp/workspace/dsfr/`, copie complète, cache invalidé sur HEAD du submodule). Le mask n'est pas nécessaire — on patche directement les fichiers du workspace puisque c'est jetable.
 
-### Step 3 — Generate palette (1j)
+Raison de la bascule : Sass ne route **pas** les imports relatifs (`@use 'options'` depuis `_static.scss`) via les Importers customs — ils sont résolus via le filesystem du fichier parent. Donc l'idée d'un Importer custom pour intercepter `_options.scss` ne marche pas, le workspace physique est le seul levier propre. Documenté dans le commit `b24a185`.
 
-`builder/generate/palette.js` :
+### Step 3 — Generate palette ✓
 
-- [ ] Parser `mapping.yml` (YAML minimal)
-- [ ] Parser `dsfr/src/module/color/variable/_options.scss` pour extraire la liste des grades par famille
-- [ ] Pour chaque famille mappée : appliquer le profil LCh (cf. `phase1-poc-report.md` § "Étape 4 — Profil LCh")
-- [ ] Émettre `overrides/_palette.scss` avec `:root { --<famille>-<grade>: <hex>; }` pour chaque grade × état (default/hover/active)
-- [ ] Gérer `add-grades` (créer des grades qui n'existaient pas) et `recalibrate-grade` (émettre l'ancien ET le nouveau)
-- [ ] Gérer `semantic-remap` via `@layer ademe { :root { --<token>: var(--<new-target>); } }`
-- [ ] Validation WCAG en post-génération avec auto-darken si nécessaire
+`builder/generate/palette.js` + `profile-lch.js` — `computeFamilyPalette({anchor, recalibrate, addGrades, semanticRemap})` reproduit le profil LCh Phase 1 sur les 11 grades canoniques (75 → 975 + sun + main). 22 hex de référence Phase 1 matchent à **±3 bytes** par canal RGB (test exhaustif).
 
-**Test** : la palette générée pour le mapping ADEME doit matcher celle de la Phase 1 (cf. `_options.scss` actuel dans `../dsfr/`).
+### Steps 4-5 — font-face / shadows / radius ✓
 
-### Step 4 — Generate font-face (0.5j)
+3 générateurs SCSS purs dans `builder/generate/`, orchestrateur dans `index.js`. Le `@layer ademe` initialement prévu pour les radius a été **retiré** : CSS Cascade Layers spec dit "unlayered > layered", or DSFR émet ses propres `.fr-input { border-radius: ... }` non-layered, donc notre `@layer ademe` perdait silencieusement. Émission au top level + late dans le fichier = cascade naturelle, on gagne.
 
-`builder/generate/font-face.js` :
+### Step 6 — Manual overrides + components.remove ✓
 
-- [ ] Émettre `overrides/_font-face.scss` avec `@font-face` pour chaque poids × style du mapping
-- [ ] Si `css-name` ≠ DSFR : émettre aussi un override `:root { --font-family-primary: ... }`
-- [ ] Copier les fichiers fontes vers `dist/fonts/` au build
+`build/filter-components.js` strip les `@import` des composants exclus dans `component/{main,legacy,print}.scss` du workspace. Pour DSFR v1.14.4, **aucun** composant non-exemple ne référence header/footer dans son `style:` block, donc le strip suffit — pas besoin de patcher d'autres `.package.yml` comme prévu initialement.
 
-### Step 5 — Generate shadows + radius (0.5j)
+`overrides/_card-fix.scss` est un fichier user-curated tracké (pas généré) ; il est référencé via `manual-overrides:` du mapping et `@import` en absolu dans `_index.scss`.
 
-- [ ] `builder/generate/shadows.js` → `overrides/_shadows.scss` avec `:root { --raised-shadow-color: ... }` (light + dark)
-- [ ] `builder/generate/radius.js` → `overrides/_radius.scss` avec `@layer ademe { ... }` pour chaque cible
+### Step 7 — Post-process rename ✓
 
-### Step 6 — Manual overrides + components.remove (1j)
+`build/post-process.js` — sed sur `dist/*.css|js` avec safety-check : un token isolé (sans préfixe ni suffixe alpha-num) déclenche une erreur — protège des renames accidentels en commentaires/prose.
 
-- [ ] `builder/generate/manual-overrides.js` : lit `manual-overrides:` du mapping et copie les fichiers SCSS curés (ex : card-fix) dans le workspace
-- [ ] `builder/build/filter-packages.js` : pour chaque composant dans `components.remove`, mask `dsfr/src/dsfr/component/<name>/.package.yml` → `.disabled` AVANT compile
-- [ ] Scanner les autres `.package.yml` et patcher les dépendances vers les composants exclus (en écrivant des fichiers patchés dans le workspace, pas dans `dsfr/`)
-- [ ] `restore.js` : restaurer les `.package.yml` à la fin (try/finally)
-- [ ] Sanity check : `git status dsfr/` clean après build
+449 occurrences `blue-france → blue-ate` + 191 `red-marianne → red-laura` renommées proprement sur 2 fichiers (dsfr-ademe.css + utility-ademe.css).
 
-### Step 7 — Post-process rename (1j)
+### Step 8 — Validate ✓
 
-`builder/build/post-process.js` :
+3 sous-modules dans `builder/validate/` :
 
-- [ ] Si `post-process.rename.enabled: true`, sed sur `dist/*.css` et `dist/*.js`
-- [ ] Si `safety-check: true` : avant le sed, scanner les fichiers pour vérifier que `blue-france` et `red-marianne` n'apparaissent que dans des contextes attendus (noms de classes `\.fr-[a-z-]*--blue-france`, noms de var `--[a-z-]*-blue-france`, identifiants JS). Si une occurrence inattendue → error
-- [ ] Vérifier qu'après rename, plus aucune occurrence des anciens noms
+- `mapping.js` — schéma minimal + détection collision rename.
+- `upstream-drift.js` — SHA-256 de 9 fichiers DSFR critiques dans `.ademe-baseline.json`.
+- `wcag.js` — passe par `computeFamilyPalette` re-computed (pas par CSS scraping) parce que DSFR n'émet que les vars **combinées** (`sun-113-625`), pas les per-grade en standalone.
 
-### Step 8 — Validate (2j)
+19 tests dédiés.
 
-`builder/validate/` :
+### Step 9 — CLI + DX ✓
 
-- [ ] `mapping.js` : structure du mapping (schéma minimal)
-- [ ] `upstream-drift.js` : maintenir un `.ademe-baseline.json` avec hashs SHA des fichiers DSFR critiques (`_options.scss`, `_sets.scss`, `_decisions.scss`, `_font-face.scss` setting, et chaque `.package.yml` des composants exclus). Au build, comparer et warn si drift
-- [ ] Détecter les tokens manquants/en trop (le mapping référence des tokens qui n'existent pas, ou inversement)
-- [ ] Détecter les renaming collisions (rename vers un nom déjà existant en upstream)
-- [ ] `wcag.js` : valider les ratios sur le CSS final (post-rename)
+`builder/index.js` réécrit : sous-commandes `build`/`generate`/`validate`/`baseline --update`/`upgrade`. Logs ANSI colorés (✓/⚠/✗/·), `--strict` transforme les warnings en erreurs, codes de sortie clairs. `--minify` ajouté avec PostCSS pipeline. Les scripts `pnpm` pointent dessus.
 
-### Step 9 — CLI + DX (1j)
+`palette <famille>` et `preview` du plan initial **non implémentés** — pas de besoin observé.
 
-- [ ] Sous-commandes : `build`, `generate`, `validate`, `upgrade`, `palette <famille>`, `baseline --update`, `preview`
-- [ ] Option `--strict` (error sur les warns)
-- [ ] Logs lisibles (couleur, structure)
-- [ ] `npm scripts` qui mappent dessus
+### Step 10 — CI + automation ✓
 
-### Step 10 — CI + automation (1j)
+- `.github/workflows/build.yml` — build + test + `validate --strict` sur push/PR, dist en artifact (14j).
+- `.github/workflows/upstream-drift.yml` — cron hebdo, pull `dsfr/` upstream, validate, ouvre une issue dédupliquée si drift.
 
-- [ ] GitHub Action : build + validate à chaque push
-- [ ] Cron hebdo : `git submodule update --remote && npx ademe-ds validate` → ouvre une issue si drift
-- [ ] Tests (au moins : LCh primitives + comparaison palette POC)
+### Step 11 — Preview (Playwright visual diff) ✗
 
-### Step 11 — Preview (optionnel, 2j)
+Abandonné. Raison : Playwright ajoute ~200 MB de browsers binaries pour un usage marginal. Remplacé par :
 
-- [ ] `builder/preview.js` : Playwright qui rend `example/poc-ademe.html` avant/après et fait un diff visuel
-- [ ] Seuil de tolérance configurable
+- **Page témoin `example/index.html`** : smoke test ~5 s, 0 dépendance lourde, panneau de diagnostic typo intégré (canvas measurement). Cf. `docs/example.md`.
+- **Storybook** (`pnpm storybook`) : 322 stories DSFR upstream + 57 docs autodocs avec switcher dark/light. Cf. `docs/storybook.md`.
 
-## Estimation totale
+Si un vrai diff visuel pixel-près devient nécessaire en CI, l'ajouter est encore possible — la doc storybook explique comment.
 
-| Phase | Effort |
-|---|---|
-| Bootstrap → Generate palette (Steps 0-3) | 3-3.5j |
-| Font/shadows/radius/manual-overrides/components (Steps 4-6) | 2j |
-| Post-process + Validate + CLI (Steps 7-9) | 4j |
-| CI + Preview (Steps 10-11) | 1-3j |
-| **Total** | **10-12.5j** |
+### Bonus — PostCSS pipeline ✓
 
-## Ordre suggéré pour démarrer
+`build/postcss-process.js` reproduit le pipeline DSFR officiel (mqpacker `sort:false` + combine-duplicated-selectors + discard-duplicates + banner ADEME inline). cssnano en mode `--minify`. Réduit `dsfr-ademe.css` de 33342 → **25445 lignes** (−24%, fewer than Phase 1 official build). Banner ADEME est la première ligne du fichier.
 
-1. **Step 0 + 1 + 2** en premier : on a le squelette + les primitives + un build "vide" qui marche. Indispensable pour itérer.
-2. **Step 3** ensuite : c'est le cœur. Une fois la palette générée correctement, on peut comparer au CSS Phase 1 pour valider l'algo LCh.
-3. **Steps 4-6** en parallèle : ils sont indépendants l'un de l'autre.
-4. **Step 7** seulement quand 4-6 sont solides (le rename est destructif, on veut une base stable d'abord).
-5. **Steps 8-11** en finition.
+`build/write-results.js` extrait l'I/O disque pour que `compile()` et `postcssProcess()` restent purement transformationnels (string in / string out — testable trivialement).
 
-## Garde-fous à mettre en place tôt
+Opt-out via `mapping.yml`:
 
-- **Test end-to-end** : `npx ademe-ds build && diff dist/dsfr.css ../dsfr/dist/dsfr.css | wc -l` doit converger vers 0 (modulo l'ordre des règles)
-- **`git status dsfr/` est clean** : à valider après chaque build dans les tests
-- **Reproductibilité** : 2 builds successifs avec le même mapping doivent produire des bytes identiques
+```yaml
+post-css:
+  enabled: false      # défaut: true
+  banner: false       # défaut: true
+  banner-text: "..."  # texte custom, sinon default
+```
+
+### Bonus — Build du package `utility` ✓
+
+`prepare()` retourne un array de **targets** au lieu d'un seul entry. Aujourd'hui : `dsfr` (composants + scheme + core + overrides) et `utility` (classes utilitaires `.fr-background-action-high--blue-ate` etc., consomme les vars de `dsfr-ademe.css`).
+
+## Garde-fous en place
+
+- **Test end-to-end** : `pnpm test` (46 tests) — palette match Phase 1, dsfr/ submodule reste clean après build, reproductibilité bit-pour-bit, banner ADEME unique.
+- **`git status dsfr/` clean** : assertion explicite dans `build.test.js`. Verifié à chaque test e2e.
+- **Reproductibilité** : 2 builds successifs produisent des bytes identiques (mqpacker, dedup et cssnano sont déterministes).
+- **Drift upstream** : workflow GitHub hebdo + commande `pnpm validate` qui flag les changements de SHA sur 9 fichiers DSFR critiques.
+
+## Stack finale
+
+```
+dsfr-override/
+├── dsfr/                    # submodule v1.14.4 (read-only)
+├── builder/
+│   ├── lch.js               # primitives CIELAB
+│   ├── index.js             # CLI
+│   ├── serve.js             # serveur statique pour example/
+│   ├── build/               # prepare / compile / restore / postcss / write-results / post-process / workspace / dsfr-config / filter-components / transform-options
+│   ├── generate/            # palette / font-face / shadows / radius / index
+│   └── validate/            # mapping / upstream-drift / wcag / index
+├── overrides/               # _card-fix.scss (manuel) + générés (gitignored)
+├── assets/fonts/            # PublicSans (16 fichiers)
+├── example/index.html       # page témoin (smoke test)
+├── storybook/               # workspace pnpm dédié (storybook 8.4 + addons)
+├── dist/                    # output (gitignored)
+├── mapping.yml              # source de vérité ADEME
+├── .ademe-baseline.json     # SHA-256 des fichiers DSFR critiques
+└── .github/workflows/       # build + upstream-drift cron
+```
+
+## Prochaines étapes possibles
+
+- **Sourcemaps** : `compile()` accepte déjà `sourceMap: true` mais ce n'est pas câblé dans le CLI. Trivial à ajouter quand on en a besoin pour debug en navigateur.
+- **`palette <famille>` CLI** : preview standalone d'une palette LCh donnée (anchor + profile). Utile pour l'itération design avant de toucher au mapping.
+- **Branding Storybook ADEME** : `storybook/.storybook/dsfr-theme.js` reprend les couleurs DSFR (#000091, etc.) — à adapter quand le branding ADEME final est défini.
+- **Stories ADEME custom** : ajouter `storybook/stories/*.stories.js` pour les composants ou patterns spécifiques ADEME (header/footer remplacements, cards spécifiques, etc.).
