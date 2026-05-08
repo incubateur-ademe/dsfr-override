@@ -59,6 +59,11 @@ border-radius:
     - { selector: ".fr-badge",       value: "0.75rem" }
     - { selector: ".fr-card",        value: "0.75rem", overflow: true }
     - { selector: ".fr-alert",       value: "0.75rem", overflow: true }   # gradients en background → overflow hidden requis pour clipper la barre 40px gauche
+    # Pour l'addon-wrap on définit les coins selon la position : middle = carré
+    # (sinon le radius par défaut de .fr-input crée une pill qui chevauche le
+    # bouton à droite), first = arrondi à gauche, last = arrondi à droite. Les
+    # 3 sélecteurs sont mutuellement exclusifs.
+    - { selector: ".fr-input-wrap--addon > *:not(:first-child):not(:last-child)", value: "0" }
     - { selector: ".fr-input-wrap--addon > *:first-child:not(:last-child)", value: "0.75rem 0 0 0.75rem" }
     - { selector: ".fr-input-wrap--addon > *:last-child:not(:first-child)", value: "0 0.75rem 0.75rem 0" }
 
