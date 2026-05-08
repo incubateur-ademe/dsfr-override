@@ -64,6 +64,7 @@ border-radius:
 
 manual-overrides:
   - "./overrides/_card-fix.scss"       # box-shadow inset trick pour bordure radius
+  - "./overrides/_alert-fix.scss"      # idem pour les alertes (gradients DSFR ignorent le radius)
 
 icons:
   # Remplace les SVG DSFR-specific (préfixe fr--*) par leurs équivalents Lucide.

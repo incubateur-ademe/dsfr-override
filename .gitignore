@@ -5,3 +5,6 @@ dist/
 .tmp/
 .cache/
 .playwright-mcp/
+
+alert-info*.png
+*.tmp.png
