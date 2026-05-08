@@ -58,7 +58,7 @@ border-radius:
     - { selector: ".fr-btn",         value: "0.75rem" }
     - { selector: ".fr-badge",       value: "0.75rem" }
     - { selector: ".fr-card",        value: "0.75rem", overflow: true }
-    - { selector: ".fr-alert",       value: "0.75rem" }
+    - { selector: ".fr-alert",       value: "0.75rem", overflow: true }   # gradients en background → overflow hidden requis pour clipper la barre 40px gauche
     - { selector: ".fr-input-wrap--addon > *:first-child:not(:last-child)", value: "0.75rem 0 0 0.75rem" }
     - { selector: ".fr-input-wrap--addon > *:last-child:not(:first-child)", value: "0 0.75rem 0.75rem 0" }
 
