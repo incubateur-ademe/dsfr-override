@@ -103,7 +103,14 @@ export function prepare(opts) {
     `@import '${overridesAbs}';`,
     ''
   ].join('\n');
+  // utility/main.scss starts with `@include path.to-dist(1)` (DSFR ships its
+  // utility CSS at `dist/utility/utility.css`, so `..` resolves to dist/).
+  // We output flat at `dist/utility-ademe.css`, so we need dist = '' instead.
+  // path.to-dist uses first-wins (`@if $value == null`), so calling it with 0
+  // before importing utility/main.scss neutralises its 1.
   const utilityEntry = [
+    "@use 'src/module/path' as ademe-path;",
+    "@include ademe-path.to-dist(0);",
     "@import 'main';",
     "@import 'legacy';",
     "@import 'print';",
