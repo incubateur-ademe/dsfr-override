@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Test — DSFR ADEME (Phase 2 builder)</title>
   <link rel="stylesheet" href="../dist/dsfr-ademe.css">
+  <link rel="stylesheet" href="../dist/utility-ademe.css">
   <style>
     body { padding: 2rem; max-width: 1200px; margin: 0 auto; }
     .ademe-section { margin-block: 3rem; }
@@ -205,11 +206,17 @@
   </section>
 
   <section class="ademe-section">
-    <h2>Vérification rename — variables CSS</h2>
-    <p class="fr-text--sm">Le post-process a renommé <code>blue-france</code> en <code>blue-ate</code> et <code>red-marianne</code> en <code>red-laura</code>. Les classes utilitaires <code>.fr-*--blue-ate</code> vivent dans <code>utility.css</code> (pas encore dans notre build), mais les variables CSS sont déjà renommées et utilisables.</p>
-    <div class="ademe-stack" style="align-items: center">
-      <span style="display: inline-block; padding: 0.5rem 1rem; background: var(--background-action-high-blue-ate); color: var(--text-inverted-blue-ate); border-radius: 0.5rem">--background-action-high-blue-ate</span>
-      <span style="display: inline-block; padding: 0.5rem 1rem; background: var(--background-action-high-red-laura); color: var(--text-inverted-red-laura); border-radius: 0.5rem">--background-action-high-red-laura</span>
+    <h2>Vérification rename — classes utilitaires &amp; variables CSS</h2>
+    <p class="fr-text--sm">Le post-process a renommé <code>blue-france</code> en <code>blue-ate</code> et <code>red-marianne</code> en <code>red-laura</code>. Les classes utilitaires viennent du package <code>utility</code> (chargé via <code>utility-ademe.css</code>).</p>
+    <h3>Classes utilitaires</h3>
+    <div class="ademe-stack" style="align-items: center; gap: 0.5rem">
+      <span class="fr-background-action-high--blue-ate fr-px-2w fr-py-1w" style="color: var(--text-inverted-blue-ate)">.fr-background-action-high--blue-ate</span>
+      <span class="fr-background-action-high--red-laura fr-px-2w fr-py-1w" style="color: var(--text-inverted-red-laura)">.fr-background-action-high--red-laura</span>
+      <span class="fr-background-alt--blue-ate fr-px-2w fr-py-1w fr-text-action-high--blue-ate">.fr-background-alt--blue-ate</span>
+      <span class="fr-background-contrast--red-laura fr-px-2w fr-py-1w fr-text-action-high--red-laura">.fr-background-contrast--red-laura</span>
+    </div>
+    <h3>Variables CSS</h3>
+    <div class="ademe-stack" style="align-items: center; gap: 0.5rem">
       <span style="display: inline-block; padding: 0.5rem 1rem; color: var(--text-action-high-blue-ate); border: 2px solid var(--border-default-blue-ate); border-radius: 0.5rem">--text-action-high-blue-ate</span>
       <span style="display: inline-block; padding: 0.5rem 1rem; color: var(--text-action-high-red-laura); border: 2px solid var(--border-default-red-laura); border-radius: 0.5rem">--text-action-high-red-laura</span>
     </div>

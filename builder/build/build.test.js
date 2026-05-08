@@ -13,10 +13,11 @@ const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..'
 
 async function build() {
   const input = prepare({ projectRoot: PROJECT_ROOT });
-  const result = await compile(input);
+  const results = await compile(input);
   const status = await restore({ projectRoot: PROJECT_ROOT });
   postProcess({ distDir: input.distDir, mapping: input.mapping });
-  return { ...result, clean: status.clean, dirty: status.dirty };
+  const dsfr = results.find(r => r.name === 'dsfr');
+  return { outFile: dsfr.outFile, results, clean: status.clean, dirty: status.dirty };
 }
 
 test('build: produces a sane DSFR-shaped CSS', async () => {

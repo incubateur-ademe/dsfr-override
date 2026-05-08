@@ -12,7 +12,9 @@ import { filterComponents } from './filter-components.js';
 /**
  * Build the inputs for sass compilation. Materializes a writable copy of dsfr/
  * (so that the modified _options.scss wins at relative-import time), then
- * composes the SCSS entry that mirrors dsfr/tool/build/styles.js.
+ * composes one SCSS entry per DSFR package we want to ship. Today: `dsfr`
+ * (components / scheme / core) and `utility` (background-, text-, border-,
+ * fr-tag--blue-france etc.).
  *
  * @param {object} opts
  * @param {string} opts.projectRoot       Project root (where dsfr/ submodule lives)
@@ -20,8 +22,7 @@ import { filterComponents } from './filter-components.js';
  * @param {string} [opts.overridesIndex]  Path to overrides/_index.scss (auto-created if missing)
  * @param {string} [opts.distDir]         Output dir (auto-created if missing)
  * @returns {{
- *   entrySource: string,
- *   entryUrl: URL,
+ *   targets: Array<{ name: string, entrySource: string, entryUrl: URL, outName: string, withOverrides: boolean }>,
  *   loadPaths: string[],
  *   distDir: string,
  *   workspaceDsfr: string,
@@ -85,19 +86,43 @@ export function prepare(opts) {
   });
 
   const overridesAbs = resolve(overridesIndex);
-  const entrySource = [
+
+  // The dsfr package ships components/scheme/core; we append our overrides
+  // here so they ride the same cascade. Utility (colors, icons, spacing
+  // utilities) is a sibling package and doesn't need our overrides — they
+  // just consume the same CSS variables, which are already overridden by
+  // the dsfr bundle loaded alongside.
+  const dsfrEntry = [
     "@import 'main';",
     "@import 'legacy';",
     "@import 'print';",
     `@import '${overridesAbs}';`,
     ''
   ].join('\n');
+  const utilityEntry = [
+    "@import 'main';",
+    "@import 'legacy';",
+    "@import 'print';",
+    ''
+  ].join('\n');
 
-  const entryUrl = pathToFileURL(join(workspaceDsfr, 'src/dsfr/__ademe-entry.scss'));
+  const targets = [
+    {
+      name: 'dsfr',
+      entrySource: dsfrEntry,
+      entryUrl: pathToFileURL(join(workspaceDsfr, 'src/dsfr/__ademe-entry.scss')),
+      outName: 'dsfr-ademe.css'
+    },
+    {
+      name: 'utility',
+      entrySource: utilityEntry,
+      entryUrl: pathToFileURL(join(workspaceDsfr, 'src/dsfr/utility/__ademe-entry.scss')),
+      outName: 'utility-ademe.css'
+    }
+  ];
 
   return {
-    entrySource,
-    entryUrl,
+    targets,
     loadPaths: [workspaceDsfr],
     distDir,
     workspaceDsfr,

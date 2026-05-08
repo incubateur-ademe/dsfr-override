@@ -69,11 +69,11 @@ async function runBuild() {
   logInfo('preparing entry');
   const input = prepare({ projectRoot: PROJECT_ROOT });
 
-  logInfo('compiling sass');
-  let outFile, buildErr;
+  logInfo(`compiling sass (${input.targets.length} target${input.targets.length > 1 ? 's' : ''})`);
+  let results;
+  let buildErr;
   try {
-    const result = await compile(input);
-    outFile = result.outFile;
+    results = await compile(input);
   } catch (e) {
     buildErr = e;
   }
@@ -87,7 +87,8 @@ async function runBuild() {
     logInfo(`rename: ${r.from} → ${r.to} (${r.replacements} occurrences in ${r.files} files)`);
   }
 
-  logOk(`build: ${outFile} (${Date.now() - t0}ms)`);
+  for (const r of results) logOk(`${r.name}: ${r.outFile}`);
+  logOk(`build complete (${Date.now() - t0}ms)`);
 }
 
 function runGenerate() {

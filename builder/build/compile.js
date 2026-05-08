@@ -3,26 +3,26 @@ import { join } from 'node:path';
 import { compileStringAsync } from 'sass';
 
 /**
- * Compile the SCSS entry produced by prepare() into a CSS file.
+ * Compile every target produced by prepare() into its CSS file.
  *
  * @param {object} input  Result of prepare()
  * @param {object} [opts]
- * @param {string} [opts.outName='dsfr-ademe.css']
  * @param {boolean} [opts.sourceMap=false]
- * @returns {Promise<{ outFile: string, css: string }>}
+ * @returns {Promise<Array<{ name: string, outFile: string, css: string }>>}
  */
 export async function compile(input, opts = {}) {
-  const outName = opts.outName ?? 'dsfr-ademe.css';
-  const result = await compileStringAsync(input.entrySource, {
-    url: input.entryUrl,
-    loadPaths: input.loadPaths,
-    style: 'expanded',
-    sourceMap: opts.sourceMap === true,
-    silenceDeprecations: ['global-builtin', 'import', 'mixed-decls']
-  });
-
-  const outFile = join(input.distDir, outName);
-  writeFileSync(outFile, result.css);
-
-  return { outFile, css: result.css };
+  const results = [];
+  for (const target of input.targets) {
+    const r = await compileStringAsync(target.entrySource, {
+      url: target.entryUrl,
+      loadPaths: input.loadPaths,
+      style: 'expanded',
+      sourceMap: opts.sourceMap === true,
+      silenceDeprecations: ['global-builtin', 'import', 'mixed-decls']
+    });
+    const outFile = join(input.distDir, target.outName);
+    writeFileSync(outFile, r.css);
+    results.push({ name: target.name, outFile, css: r.css });
+  }
+  return results;
 }
