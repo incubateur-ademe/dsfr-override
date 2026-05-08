@@ -6,7 +6,8 @@
 const config = {
   stories: [
     '../../dsfr/dsfr-sb/*.mdx',
-    '../../dsfr/src/dsfr/**/*.mdx',
+    // src/dsfr/**/*.mdx left out: DSFR doesn't ship per-component .mdx, only
+    // .stories.js. Including it would just print a no-match warning.
     '../../dsfr/src/dsfr/**/*.stories.@(js|jsx|mjs|ts|tsx)'
   ],
 
@@ -32,16 +33,39 @@ const config = {
     options: {}
   },
 
+  // The autodocs renderer pulls @mdx-js/react + react/jsx-runtime lazily.
+  // Without explicit pre-bundling, vite reloads the iframe mid-render and
+  // docs pages stay blank. Listing them in optimizeDeps forces the deps to
+  // be ready before any docs page renders.
+  viteFinal: (config) => {
+    config.optimizeDeps = {
+      ...config.optimizeDeps,
+      include: [
+        ...(config.optimizeDeps?.include ?? []),
+        '@mdx-js/react',
+        'react/jsx-runtime'
+      ]
+    };
+    return config;
+  },
+
+  docs: {
+    autodocs: 'tag'
+  },
+
   staticDirs: [
     './static',
     { from: '../../dist', to: 'dist' },
     { from: '../../dsfr/tool/example/img', to: 'img' },
+    // Icons + pictograms are referenced as dist/icons/* and dist/artwork/*
+    // in DSFR templates. Our builder doesn't copy those assets to dist/
+    // (they're not styled by us), so serve them straight from the submodule.
+    { from: '../../dsfr/src/dsfr/core/icon', to: 'dist/icons' },
+    { from: '../../dsfr/src/dsfr/core/asset/artwork', to: 'dist/artwork' },
     // The vanilla DSFR JS comes from the npm package — DSFR submodule itself
     // doesn't ship dist/. The stories need this for interactive components.
     { from: '../node_modules/@gouvfr/dsfr/dist/dsfr', to: 'vendor' }
-  ],
-
-  docs: {}
+  ]
 };
 
 export default config;

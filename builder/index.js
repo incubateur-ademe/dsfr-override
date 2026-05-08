@@ -7,8 +7,10 @@ import { fileURLToPath } from 'node:url';
 import { load as parseYaml } from 'js-yaml';
 import { compile } from './build/compile.js';
 import { postProcess } from './build/post-process.js';
+import { defaultBanner, postcssProcess } from './build/postcss-process.js';
 import { prepare } from './build/prepare.js';
 import { restore } from './build/restore.js';
+import { writeResults } from './build/write-results.js';
 import { generateOverrides } from './generate/index.js';
 import { validateAll } from './validate/index.js';
 import { updateBaseline } from './validate/upstream-drift.js';
@@ -41,18 +43,20 @@ ${c('bold', 'Commands:')}
 
 ${c('bold', 'Options:')}
   --mapping <path>   Path to mapping file (default: mapping.yml)
+  --minify           Also emit dist/*.min.css (cssnano)
   --strict           Treat warnings as errors
   -h, --help         Show this help
 `;
 
 function parseArgs(args) {
-  const opts = { strict: false, mapping: 'mapping.yml', update: false, help: false };
+  const opts = { strict: false, mapping: 'mapping.yml', update: false, minify: false, help: false };
   const rest = [];
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '-h' || a === '--help') opts.help = true;
     else if (a === '--strict') opts.strict = true;
     else if (a === '--update') opts.update = true;
+    else if (a === '--minify') opts.minify = true;
     else if (a === '--mapping') opts.mapping = args[++i];
     else rest.push(a);
   }
@@ -64,7 +68,7 @@ function logOk(msg) { stderr.write(c('green', '✓ ') + msg + '\n'); }
 function logWarn(msg) { stderr.write(c('yellow', '⚠ ') + msg + '\n'); }
 function logErr(msg) { stderr.write(c('red', '✗ ') + msg + '\n'); }
 
-async function runBuild() {
+async function runBuild(opts) {
   const t0 = Date.now();
   logInfo('preparing entry');
   const input = prepare({ projectRoot: PROJECT_ROOT });
@@ -78,16 +82,35 @@ async function runBuild() {
     buildErr = e;
   }
 
+  // Restore must run before any other failure path so dsfr/ stays clean.
   const status = await restore({ projectRoot: PROJECT_ROOT });
   if (!status.clean) logWarn(`dsfr/ working tree is dirty after build:\n${status.dirty}`);
   if (buildErr) throw buildErr;
+
+  const postcssCfg = input.mapping?.['post-css'] ?? {};
+  const postcssEnabled = postcssCfg.enabled !== false;
+  if (postcssEnabled) {
+    logInfo(`postcss (mqpacker + dedup${opts.minify ? ' + cssnano' : ''})`);
+    const banner = postcssCfg.banner === false ? null
+      : (postcssCfg['banner-text'] ?? defaultBanner(input.mapping));
+    for (const r of results) {
+      const out = await postcssProcess(r.css, { banner, minify: opts.minify, from: r.outFile, to: r.outFile });
+      r.css = out.css;
+      r.minCss = out.minCss;
+    }
+  }
+
+  writeResults(results);
 
   const post = postProcess({ distDir: input.distDir, mapping: input.mapping });
   for (const r of post.applied) {
     logInfo(`rename: ${r.from} → ${r.to} (${r.replacements} occurrences in ${r.files} files)`);
   }
 
-  for (const r of results) logOk(`${r.name}: ${r.outFile}`);
+  for (const r of results) {
+    const min = r.minCss ? `, ${r.outFile.replace(/\.css$/, '.min.css')}` : '';
+    logOk(`${r.name}: ${r.outFile}${min}`);
+  }
   logOk(`build complete (${Date.now() - t0}ms)`);
 }
 
@@ -170,7 +193,7 @@ async function main() {
 
   try {
     switch (command) {
-      case 'build':    await runBuild(); exit(0);
+      case 'build':    await runBuild(opts); exit(0);
       case 'generate': runGenerate(); exit(0);
       case 'validate': exit(runValidate(opts));
       case 'baseline': exit(runBaseline(opts));

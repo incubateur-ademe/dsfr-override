@@ -8,13 +8,22 @@ import { prepare } from './prepare.js';
 import { compile } from './compile.js';
 import { restore } from './restore.js';
 import { postProcess } from './post-process.js';
+import { defaultBanner, postcssProcess } from './postcss-process.js';
+import { writeResults } from './write-results.js';
 
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-async function build() {
+async function build({ minify = false } = {}) {
   const input = prepare({ projectRoot: PROJECT_ROOT });
   const results = await compile(input);
   const status = await restore({ projectRoot: PROJECT_ROOT });
+  const banner = defaultBanner(input.mapping);
+  for (const r of results) {
+    const out = await postcssProcess(r.css, { banner, minify, from: r.outFile, to: r.outFile });
+    r.css = out.css;
+    r.minCss = out.minCss;
+  }
+  writeResults(results);
   postProcess({ distDir: input.distDir, mapping: input.mapping });
   const dsfr = results.find(r => r.name === 'dsfr');
   return { outFile: dsfr.outFile, results, clean: status.clean, dirty: status.dirty };
@@ -93,6 +102,46 @@ test('build: two consecutive builds are byte-identical (reproducibility)', async
   const r2 = await build();
   const css2 = readFileSync(r2.outFile);
   assert.deepEqual(css1, css2, 'two builds produced different output');
+});
+
+test('postcss: ADEME banner is the very first thing in the file', async () => {
+  await build();
+  const css = readFileSync(join(PROJECT_ROOT, 'dist', 'dsfr-ademe.css'), 'utf8');
+  assert.match(css, /^\/\*\s*ADEME Design System.*DSFR\s+\d+\.\d+/);
+});
+
+test('postcss: @media (min-width: 36em) is grouped (mqpacker)', async () => {
+  await build();
+  const css = readFileSync(join(PROJECT_ROOT, 'dist', 'dsfr-ademe.css'), 'utf8');
+  // Pre-postcss this query showed up many times scattered through the file.
+  // mqpacker collapses them into a single block; expect a small handful at most.
+  const count = (css.match(/@media \(min-width: 36em\) \{/g) ?? []).length;
+  assert.ok(count <= 2, `@media (min-width: 36em) should be grouped, got ${count} blocks`);
+});
+
+test('postcss: line count is below the pre-postcss baseline', async () => {
+  await build();
+  const lines = readFileSync(join(PROJECT_ROOT, 'dist', 'dsfr-ademe.css'), 'utf8').split('\n').length;
+  // Pre-postcss baseline was ~33342 lines. Anything significantly above means
+  // dedup/mqpacker regressed.
+  assert.ok(lines < 28000, `dsfr-ademe.css grew unexpectedly: ${lines} lines (baseline ~25445)`);
+});
+
+test('postcss: --minify produces a smaller .min.css', async () => {
+  await build({ minify: true });
+  const css = readFileSync(join(PROJECT_ROOT, 'dist', 'dsfr-ademe.css'));
+  const min = readFileSync(join(PROJECT_ROOT, 'dist', 'dsfr-ademe.min.css'));
+  assert.ok(min.length < css.length, `min.css ${min.length} should be smaller than css ${css.length}`);
+  // cssnano on already mqpacker'd CSS won't shrink dramatically; expect ≥10% off.
+  assert.ok(min.length / css.length < 0.95, `min.css should be at least 5% smaller, got ${(min.length / css.length).toFixed(2)}`);
+});
+
+test('postcss: banner is idempotent across two builds', async () => {
+  await build();
+  await build();
+  const css = readFileSync(join(PROJECT_ROOT, 'dist', 'dsfr-ademe.css'), 'utf8');
+  const banners = (css.match(/ADEME Design System/g) ?? []).length;
+  assert.equal(banners, 1, `banner should appear once, got ${banners}`);
 });
 
 test('build: dsfr/ submodule git tree stays clean (no leaked writes)', async () => {

@@ -1,9 +1,9 @@
-import { writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { compileStringAsync } from 'sass';
+import { join } from 'node:path';
 
 /**
- * Compile every target produced by prepare() into its CSS file.
+ * Compile every target produced by prepare() and return the raw CSS strings.
+ * Disk I/O is delegated to writeResults() so this stays purely transformational.
  *
  * @param {object} input  Result of prepare()
  * @param {object} [opts]
@@ -20,9 +20,11 @@ export async function compile(input, opts = {}) {
       sourceMap: opts.sourceMap === true,
       silenceDeprecations: ['global-builtin', 'import', 'mixed-decls']
     });
-    const outFile = join(input.distDir, target.outName);
-    writeFileSync(outFile, r.css);
-    results.push({ name: target.name, outFile, css: r.css });
+    results.push({
+      name: target.name,
+      outFile: join(input.distDir, target.outName),
+      css: r.css
+    });
   }
   return results;
 }
