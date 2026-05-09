@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { createReadStream, statSync } from 'node:fs';
+import { createReadStream, existsSync, readdirSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
 
@@ -23,6 +23,26 @@ const MIME = {
 const server = createServer((req, res) => {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   if (urlPath === '/' || urlPath === '') urlPath = ROOT_PAGE;
+
+  // Tiny JSON API used by the builder-ui to populate font autocompletes.
+  // Returns the list of font basenames (without extension) under
+  // assets/fonts/ — only .woff2 unique stems, sorted.
+  if (urlPath === '/__api/fonts') {
+    const dir = join(PROJECT_ROOT, 'assets/fonts');
+    let stems = [];
+    if (existsSync(dir)) {
+      const seen = new Set();
+      for (const f of readdirSync(dir)) {
+        if (!f.endsWith('.woff2') && !f.endsWith('.woff')) continue;
+        const stem = f.replace(/\.(woff2?|woff)$/, '');
+        if (!seen.has(stem)) { seen.add(stem); stems.push(stem); }
+      }
+      stems.sort();
+    }
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    res.end(JSON.stringify(stems));
+    return;
+  }
 
   const safe = normalize(urlPath).replace(/^(\.\.[/\\])+/, '');
   const filePath = join(PROJECT_ROOT, safe);

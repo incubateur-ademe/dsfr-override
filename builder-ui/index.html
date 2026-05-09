@@ -3,13 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DSFR ADEME — builder UI</title>
+  <title>DSFR Override — builder UI</title>
   <link rel="stylesheet" href="./style.css">
 
   <script type="importmap">
     {
       "imports": {
         "yaml": "/builder-ui/node_modules/yaml/browser/index.js",
+        "hljs/core": "https://esm.sh/highlight.js@11.11.1/lib/core",
+        "hljs/yaml": "https://esm.sh/highlight.js@11.11.1/lib/languages/yaml",
         "ademe-lch": "/builder/lch.js",
         "ademe-palette": "/builder/generate/palette.js",
         "ademe-profile": "/builder/generate/profile-lch.js"
@@ -19,13 +21,19 @@
 </head>
 <body>
   <header class="topbar">
-    <strong>DSFR ADEME — Builder UI</strong>
+    <strong>DSFR Override — Builder UI</strong>
+    <span class="topbar__sub">config par défaut : ADEME</span>
     <span class="topbar__spacer"></span>
     <button id="btn-load">Charger mapping.yml…</button>
     <input type="file" id="file-input" accept=".yml,.yaml" hidden>
     <button id="btn-reset">Reset défaut</button>
     <button id="btn-export" class="btn-primary">Exporter mapping.yml</button>
   </header>
+
+  <!-- Fonts autocomplete: populated at boot from /__api/fonts (serve.js endpoint). -->
+  <datalist id="list-font-files"></datalist>
+  <!-- Singleton tooltip — positioned in JS on hover/focus of any .help button. -->
+  <div id="help-popup" hidden></div>
 
   <main class="layout">
     <aside class="settings" aria-label="Réglages">
@@ -56,7 +64,10 @@
         <span>mapping.yml</span>
         <span id="yaml-status" class="yaml__status"></span>
       </div>
-      <textarea id="yaml-editor" spellcheck="false"></textarea>
+      <div class="yaml__editor-wrap">
+        <pre id="yaml-hl" aria-hidden="true"></pre>
+        <textarea id="yaml-editor" spellcheck="false"></textarea>
+      </div>
     </aside>
   </main>
 

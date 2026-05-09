@@ -31,7 +31,7 @@ body {
 
 .settings, .yaml { background: #fff; overflow-y: auto; }
 .settings { border-right: 1px solid #ddd; }
-.yaml     { border-left:  1px solid #ddd; display: flex; flex-direction: column; }
+.yaml     { border-left:  1px solid #ddd; display: flex; flex-direction: column; overflow-y: hidden; }
 
 .preview { background: #eee; display: flex; flex-direction: column; min-height: 0; }
 .preview iframe { flex: 1; width: 100%; border: 0; background: #fff; }
@@ -101,16 +101,67 @@ button.add-btn:hover { background: #f0eaff; }
 .yaml__status { font-size: 10px; }
 .yaml__status.ok    { color: #6abe6a; }
 .yaml__status.error { color: #ff7a7a; }
-#yaml-editor {
-  flex: 1; resize: none; border: 0;
+
+/* Overlay editor: pre sits behind textarea, both share identical geometry. */
+.yaml__editor-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #1e1e1e;
+}
+
+/* Shared token styles for pre and textarea */
+.yaml__editor-wrap pre,
+.yaml__editor-wrap textarea {
+  position: absolute;
+  inset: 0;
+  margin: 0;
   padding: 0.75rem;
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 12px; line-height: 1.5;
-  background: #1e1e1e; color: #d4d4d4;
-  outline: none;
+  font-size: 12px;
+  line-height: 1.5;
   tab-size: 2;
+  white-space: pre;
+  word-wrap: normal;
+  overflow: auto;
 }
-#yaml-editor.invalid { background: #2e1e1e; }
+
+/* pre: renders highlighted HTML, pointer-events off so textarea receives clicks */
+#yaml-hl {
+  color: #d4d4d4;
+  background: transparent;
+  border: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* textarea: transparent text (caret still visible), sits on top */
+#yaml-editor {
+  color: transparent;
+  caret-color: #d4d4d4;
+  background: transparent;
+  border: 0;
+  resize: none;
+  outline: none;
+  z-index: 1;
+  /* scrollbar: keep webkit scrollbar from hiding, but hide its track */
+  scrollbar-color: #444 transparent;
+}
+#yaml-editor.invalid { background: rgba(60, 0, 0, 0.35); }
+
+/* highlight.js token colours — VS Code Dark+ palette. */
+.hljs-attr     { color: #9cdcfe; }                  /* keys */
+.hljs-string   { color: #ce9178; }
+.hljs-number   { color: #b5cea8; }
+.hljs-literal  { color: #569cd6; }                  /* true / false / null */
+.hljs-comment  { color: #6a9955; font-style: italic; }
+.hljs-bullet   { color: #d4d4d4; }                  /* "-" list markers */
+.hljs-meta,
+.hljs-symbol   { color: #c586c0; }
+.hljs-tag      { color: #569cd6; }
+.hljs-type     { color: #4ec9b0; }
+.hljs-punctuation { color: #d4d4d4; }
 
 .preview__bar {
   display: flex; gap: 1rem; padding: 0.4rem 0.75rem;
@@ -212,3 +263,52 @@ button.add-btn:hover { background: #f0eaff; }
 .note {
   font-size: 10px; color: #888; font-style: italic; margin: 0.25rem 0 0.5rem;
 }
+
+.topbar__sub {
+  font-size: 10px; color: #aaa; font-weight: 400;
+  padding: 1px 6px; border: 1px solid #444; border-radius: 3px;
+  margin-left: 0.5rem;
+}
+
+/* Help "?" chip next to a label. Hovering / focusing it shows a richer
+   multi-line popup. We can't rely on CSS-only because .settings has
+   overflow-y: auto (which makes overflow-x clip too in every browser),
+   so the popup is a singleton, position:fixed, placed by JS. */
+.help {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px;
+  background: #ccc; color: #333;
+  border-radius: 50%; border: 0;
+  font-size: 9px; font-weight: 700;
+  cursor: help; padding: 0;
+  margin-left: 0.25rem;
+  font-family: ui-monospace, monospace;
+  vertical-align: middle;
+}
+.help:hover, .help:focus { background: #4950fb; color: #fff; outline: none; }
+
+#help-popup {
+  position: fixed;
+  background: #161616; color: #f6f6f6;
+  padding: 0.5rem 0.75rem; border-radius: 4px;
+  font-size: 11px; font-weight: 400; line-height: 1.4;
+  white-space: pre-wrap; max-width: 320px; min-width: 200px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  pointer-events: none;
+  font-family: -apple-system, sans-serif;
+}
+#help-popup[hidden] { display: none; }
+
+/* Inline WCAG badge next to a color picker. */
+.field--color .wcag-mini {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-family: ui-monospace, monospace;
+}
+.field--color .wcag-mini > span {
+  padding: 1px 4px; border-radius: 2px;
+  background: #f0f0f0;
+}
+.field--color .wcag-mini > span.aaa { background: #c8e8c8; }
+.field--color .wcag-mini > span.aa  { background: #fdf3a3; }
+.field--color .wcag-mini > span.fail { background: #fad4d4; color: #800; }

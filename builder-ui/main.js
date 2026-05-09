@@ -1,6 +1,9 @@
 import { parse, stringify } from 'yaml';
 import { computeFamilyPalette } from 'ademe-palette';
 import { contrastRatio } from 'ademe-lch';
+import hljs from 'hljs/core';
+import yamlLang from 'hljs/yaml';
+hljs.registerLanguage('yaml', yamlLang);
 
 // =============================================================================
 // State : single source of truth, mirrors mapping.yml schema
@@ -78,17 +81,22 @@ const esc = (v) => String(v ?? '')
 
 function $section(title, body, opts = {}) {
   const badge = opts.cliOnly ? ' <span class="badge" title="Modification non visible dans la preview, appliquée au build CLI uniquement">build CLI</span>' : '';
-  return `<section class="section"><h2>${esc(title)}${badge}</h2>${body}</section>`;
+  const help = opts.help ? ` <button type="button" class="help" data-help="${esc(opts.help)}" aria-label="Aide : ${esc(title)}" tabindex="0">?</button>` : '';
+  return `<section class="section"><h2>${esc(title)}${badge}${help}</h2>${body}</section>`;
 }
 // fieldId() returns a stable id derived from a path so labels can `for=id`
 // the inputs and assistive tech / form autofill work correctly.
 const slug = (s) => String(s).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
 function fieldId(path) { return 'f-' + slug(path); }
 
-function $field(label, input, id, hint) {
-  const hintHtml = hint ? `<small style="color:#888;font-size:10px">${esc(hint)}</small>` : '';
+// $field(label, input, id, hint, help) :
+//   hint = light inline grey text after the label
+//   help = rich multi-line tooltip behind a `?` chip, can include newlines
+function $field(label, input, id, hint, help) {
+  const hintHtml = hint ? ` <small style="color:#888;font-size:10px">${esc(hint)}</small>` : '';
+  const helpHtml = help ? ` <button type="button" class="help" data-help="${esc(help)}" aria-label="Aide : ${esc(label)}" tabindex="0">?</button>` : '';
   const labelOpen = id ? `<label for="${esc(id)}">` : `<label>`;
-  return `<div class="field">${labelOpen}${esc(label)}${hintHtml ? ' ' + hintHtml : ''}</label>${input}</div>`;
+  return `<div class="field">${labelOpen}${esc(label)}${hintHtml}${helpHtml}</label>${input}</div>`;
 }
 function $input(opts) {
   const { id, path, value, type = 'text', placeholder = '', step, min, max, list } = opts;
@@ -110,8 +118,10 @@ function $input(opts) {
 function renderMeta() {
   const idV = fieldId('version'), idD = fieldId('dsfr');
   return $section('Méta', `
-    ${$field('version (du mapping)', $input({ id: idV, path: 'version', value: state.version, type: 'number', step: 1, min: 1 }), idV)}
-    ${$field('dsfr (version du submodule)', $input({ id: idD, path: 'dsfr', value: state.dsfr, placeholder: '1.14.4' }), idD, 'doit matcher dsfr/ HEAD')}
+    ${$field('version (du mapping)', $input({ id: idV, path: 'version', value: state.version, type: 'number', step: 1, min: 1 }), idV, null,
+      `Version du schéma de mapping.yml. Permet au builder de refuser des fichiers trop anciens si le schéma évolue.`)}
+    ${$field('dsfr (version du submodule)', $input({ id: idD, path: 'dsfr', value: state.dsfr, placeholder: '1.14.4' }), idD, 'doit matcher dsfr/ HEAD',
+      `Version DSFR cible. Doit matcher exactement le tag du submodule git checkouté dans dsfr/.\nLe builder lit cette valeur pour le banner ADEME et pour le check de drift upstream.`)}
   `);
 }
 
@@ -127,19 +137,19 @@ function renderTypo() {
       const idW = fieldId(`typo-weight-${i}-weight`);
       return `<div class="list-row" data-weight="${esc(w)}">
         <input type="number" id="${esc(idW)}" name="${esc(idW)}" value="${esc(w)}" data-key="weight" min="100" max="900" step="100" style="max-width: 70px" title="Poids CSS (100, 200, … 900)">
-        <input type="text" id="${esc(idN)}" name="${esc(idN)}" value="${esc(v?.normal)}" data-key="normal" placeholder="PublicSans-Regular" title="Fichier normal">
-        <input type="text" id="${esc(idI)}" name="${esc(idI)}" value="${esc(v?.italic)}" data-key="italic" placeholder="PublicSans-Italic" title="Fichier italic">
+        <input type="text" id="${esc(idN)}" name="${esc(idN)}" value="${esc(v?.normal)}" data-key="normal" placeholder="PublicSans-Regular" list="list-font-files" title="Fichier normal (autocomplete depuis assets/fonts/)">
+        <input type="text" id="${esc(idI)}" name="${esc(idI)}" value="${esc(v?.italic)}" data-key="italic" placeholder="PublicSans-Italic" list="list-font-files" title="Fichier italic (autocomplete depuis assets/fonts/)">
         <button class="icon-btn" data-action="rm-weight" title="Supprimer">×</button>
       </div>`;
     }).join('');
   return $section('Typographie', `
     <h3>Primary</h3>
-    ${$field('css-name', $input({ id: idCss, path: 'typography.primary.css-name', value: p['css-name'], placeholder: 'Marianne' }), idCss, 'nom CSS de la fonte (gardé pour la compat var(--font-family))')}
-    ${$field('files-source', $input({ id: idSrc, path: 'typography.primary.files-source', value: p['files-source'], placeholder: './assets/fonts/' }), idSrc, 'chemin vers les fichiers .woff/.woff2')}
+    ${$field('css-name', $input({ id: idCss, path: 'typography.primary.css-name', value: p['css-name'], placeholder: 'Marianne' }), idCss, 'nom CSS de la fonte', `Le nom utilisé dans font-family CSS. Garder "Marianne" permet de neutraliser la fonte officielle sans casser var(--font-family-primary) dans le DSFR.\nSi tu changes ce nom, tous les composants DSFR cesseront de matcher.`)}
+    ${$field('files-source', $input({ id: idSrc, path: 'typography.primary.files-source', value: p['files-source'], placeholder: './assets/fonts/' }), idSrc, 'chemin vers les fichiers font', `Dossier où le builder cherche les .woff / .woff2 référencés ci-dessous. Relatif à la racine du projet.`)}
     <div class="note">Poids → fichier normal / fichier italic (sans extension)</div>
     ${weights}
     <h3>Alt</h3>
-    ${$field('alt', `<select id="${esc(idAlt)}" name="${esc(idAlt)}" data-path="typography.alt"><option value="keep" ${state.typography?.alt === 'keep' ? 'selected' : ''}>keep (Spectral)</option></select>`, idAlt, 'pour l’instant : keep uniquement')}
+    ${$field('alt', `<select id="${esc(idAlt)}" name="${esc(idAlt)}" data-path="typography.alt"><option value="keep" ${state.typography?.alt === 'keep' ? 'selected' : ''}>keep (Spectral)</option></select>`, idAlt, null, `Fonte alternative (utilisée par fr-text--alt). "keep" = on garde celle du DSFR (Spectral).\nLe builder copie automatiquement les fichiers Spectral du submodule vers dist/fonts/.`)}
   `);
 }
 
@@ -170,6 +180,9 @@ function renderColors() {
         <label for="${esc(idHex)}">Anchor</label>
         <input type="color" id="${esc(idCol)}" name="${esc(idCol)}" value="${esc(anchorHex.toLowerCase())}" data-key="anchor-color">
         <input type="text" id="${esc(idHex)}" name="${esc(idHex)}" class="hex" value="${esc(anchorHex)}" data-key="anchor-hex" placeholder="#4950FB" pattern="^#?[0-9a-fA-F]{6}$">
+        <span class="wcag-mini" title="Contraste WCAG du grade main (anchor) sur fond blanc / sombre">
+          ${wcagMiniBadges(anchorHex)}
+        </span>
       </div>
       <h3>Recalibrate-grade</h3>
       ${recal}
@@ -177,7 +190,13 @@ function renderColors() {
       <hr style="border: 0; border-top: 1px solid #eee; margin: 0.75rem 0">
     </div>`;
   }).join('');
-  return $section('Couleurs', blocks);
+  return $section('Couleurs', blocks, { help:
+`Pour chaque famille DSFR (blue-france, red-marianne…), définit un anchor de couleur. Le builder calcule automatiquement les 11 grades (75 → 975, sun, main) via remapping LCh autour de cet anchor.
+
+• Nom DSFR (clé) : identifiant tel qu'il apparaît dans dsfr/_options.scss.
+• Rename : nom libre utilisé par le post-process sed pour neutraliser le préfixe État.
+• Anchor : couleur de base. Le grade main = round(L*10).
+• Recalibrate : émet un alias entre 2 noms de grade (ancien et nouveau pointent sur la même valeur, pour ne casser ni les références internes DSFR ni le nouveau naming).` });
 }
 
 // border-radius values in the mapping are stored as full CSS strings
@@ -208,20 +227,27 @@ function renderRadius() {
     </div>`;
   }).join('');
   return $section('Border-radius', `
-    ${$field('Base', `<input type="number" id="${esc(idBase)}" name="${esc(idBase)}" value="${esc(remOf(state['border-radius']?.base))}" data-path="border-radius.base" data-rem placeholder="0.75" step="0.125" min="0" max="4">`, idBase, 'valeur en rem (sans suffixe)')}
-    <h3>Targets <small style="font-weight: 400; color: #888">(values en rem)</small></h3>
+    ${$field('Base', `<input type="number" id="${esc(idBase)}" name="${esc(idBase)}" value="${esc(remOf(state['border-radius']?.base))}" data-path="border-radius.base" data-rem placeholder="0.75" step="0.125" min="0" max="4">`, idBase, 'en rem',
+      'Valeur de référence non utilisée par le builder pour le moment. Sert de mémo / source de vérité pour les valeurs émises sur les targets.')}
+    <h3>Targets <small style="font-weight: 400; color: #888">(values en rem)</small> <button type="button" class="help" data-help="Chaque target = un sélecteur CSS + le radius à lui appliquer dans dist/dsfr-ademe.css.&#10;&#10;overflow : ajoute overflow: hidden à la règle.&#10;Indispensable pour les composants dont la décoration (bordure simulée, barre colorée, image) déborde du radius — sans ça, les coins arrondis ne clippent pas le contenu.&#10;Exemples : .fr-card (image qui déborde), .fr-alert (gradient barre 40px à gauche)." aria-label="Aide overflow" tabindex="0">?</button></h3>
     ${targets}
     <button class="add-btn" data-action="add-target">+ target</button>
-  `);
+  `, { help:
+`Border-radius par sélecteur CSS. Le builder émet une règle simple ".fr-card { border-radius: 0.75rem }" en fin de cascade, donc bat naturellement les radii DSFR par défaut.
+
+L'option overflow ajoute "overflow: hidden" — utile quand la décoration du composant (barres colorées en background, gradients, etc.) ne respecte pas le border-radius (cas .fr-card et .fr-alert).` });
 }
 
 function renderShadows() {
   const sc = state.elevation?.['shadow-color'] ?? {};
   const idL = fieldId('shadow-light'), idD = fieldId('shadow-dark');
   return $section('Elevation (shadows)', `
-    ${$field('Light shadow-color', $input({ id: idL, path: 'elevation.shadow-color.light', value: sc.light, placeholder: 'rgba(0, 0, 0, 0.16)' }), idL, 'CSS color : rgba / hex / hsl')}
-    ${$field('Dark shadow-color',  $input({ id: idD, path: 'elevation.shadow-color.dark',  value: sc.dark,  placeholder: 'rgba(0, 0, 0, 0.32)' }), idD, 'mode dark / data-fr-theme=dark')}
-  `);
+    ${$field('Light shadow-color', $input({ id: idL, path: 'elevation.shadow-color.light', value: sc.light, placeholder: 'rgba(0, 0, 0, 0.16)' }), idL, 'CSS color',
+      'Override de --shadow-color en mode light. DSFR utilise rgba(0, 0, 18, 0.16) par défaut (teinte bleu marine héritée de Marianne). Mettre rgba(0, 0, 0, 0.16) neutralise.')}
+    ${$field('Dark shadow-color',  $input({ id: idD, path: 'elevation.shadow-color.dark',  value: sc.dark,  placeholder: 'rgba(0, 0, 0, 0.32)' }), idD, 'mode dark',
+      'Override de --shadow-color émis sous :root[data-fr-theme=dark]. DSFR par défaut : rgba(0, 0, 18, 0.32).')}
+  `, { help:
+`Couleur de l'ombre portée. DSFR la lit via --shadow-color (utilisée par .fr-card--shadow et autres élévations).` });
 }
 
 function renderComponents() {
@@ -235,7 +261,12 @@ function renderComponents() {
       <span>${esc(c)}</span>
     </label>`;
   }).join('');
-  return $section('Composants à exclure', `<div class="checkboxes">${items}</div>`, { cliOnly: true });
+  return $section('Composants à exclure', `<div class="checkboxes">${items}</div>`, { cliOnly: true, help:
+`Liste de composants DSFR à retirer du build (header, footer, etc.).
+
+Le builder strip les @import correspondants dans component/{main,legacy,print}.scss du workspace, donc le composant n'apparaît plus dans dsfr-ademe.css du tout.
+
+Aucun effet sur la preview live (la preview charge le CSS déjà buildé). Le changement n'est visible qu'après pnpm build.` });
 }
 
 function renderPostProcess() {
@@ -245,13 +276,16 @@ function renderPostProcess() {
     return `<label class="toggle" for="${esc(id)}"><input type="checkbox" id="${esc(id)}" name="${esc(id)}" data-path="${esc(path)}" ${checked ? 'checked' : ''}> <span>${esc(label)}</span></label>`;
   };
   return $section('Post-process', `
-    <h3>Rename CSS final (sed)</h3>
+    <h3>Rename CSS final (sed) <button type="button" class="help" data-help="Renomme blue-france → blue-ate (ou ce que tu as mis dans 'Rename') et red-marianne → red-laura dans le CSS final.&#10;&#10;C'est un sed sur dist/*.css|js après le build. Le safety-check refuse de renommer si le mot apparaît dans un contexte ambigu (commentaire, prose), ce qui éviterait des bugs surprenants." aria-label="Aide rename" tabindex="0">?</button></h3>
     ${t(fieldId('pp-rename-enabled'), 'post-process.rename.enabled', pp.enabled, 'enabled')}
     ${t(fieldId('pp-rename-safety'),  'post-process.rename.safety-check', pp['safety-check'], 'safety-check (refuse les renames ambigus)')}
-    <h3>PostCSS</h3>
+    <h3>PostCSS <button type="button" class="help" data-help="enabled : applique mqpacker (regroupe les @media), combine-duplicated-selectors et discard-duplicates sur dist/*.css. Réduit la taille de ~24%, et la sortie est byte-identique au CSS DSFR officiel.&#10;&#10;banner : insère un commentaire en tête du fichier ('ADEME Design System — based on DSFR ${state.dsfr ?? 'X.Y.Z'} (MIT)…')." aria-label="Aide postcss" tabindex="0">?</button></h3>
     ${t(fieldId('pc-enabled'), 'post-css.enabled', pc.enabled !== false, 'enabled (mqpacker + dedup)')}
     ${t(fieldId('pc-banner'),  'post-css.banner',  pc.banner !== false,  'banner ADEME en tête du fichier')}
-  `, { cliOnly: true });
+  `, { cliOnly: true, help:
+`Étapes appliquées après la compilation sass, sur le CSS final dans dist/.
+
+Toutes opt-out via leur toggle. Aucun effet sur la preview live.` });
 }
 
 function renderAll() {
@@ -373,7 +407,7 @@ function attachHandlers() {
 // =============================================================================
 
 function onStateChanged() {
-  document.getElementById('yaml-editor').value = stringify(state, { lineWidth: 0 });
+  setYamlText(stringify(state, { lineWidth: 0 }));
   setYamlStatus('ok', 'à jour');
   applyPreview();
   if (previewMode === 'palette') renderPaletteView();
@@ -384,6 +418,19 @@ function setYamlStatus(kind, msg) {
   // textContent — no HTML interpretation, safe for arbitrary error strings.
   el.textContent = msg;
   el.className = 'yaml__status ' + kind;
+}
+
+// Setting the textarea value also re-renders the syntax-highlight overlay
+// behind it. highlight.js produces escaped HTML, so injection-safe.
+function setYamlText(text) {
+  const ed = document.getElementById('yaml-editor');
+  const hl = document.getElementById('yaml-hl');
+  ed.value = text;
+  if (hl) {
+    const html = hljs.highlight(text, { language: 'yaml', ignoreIllegals: true }).value;
+    // Trailing newline keeps the overlay's last line aligned with the textarea.
+    hl.innerHTML = html + '\n';
+  }
 }
 
 // =============================================================================
@@ -527,7 +574,7 @@ function deriveSemanticRemap(family, cfg) {
 }
 
 function applyAll() {
-  document.getElementById('yaml-editor').value = stringify(state, { lineWidth: 0 });
+  setYamlText(stringify(state, { lineWidth: 0 }));
   applyPreview();
 }
 
@@ -618,6 +665,17 @@ function applyPreviewTheme() {
 // Recomputes from state on every change. Pure DOM (no iframe).
 // =============================================================================
 
+// Compact 2-badge readout: contrast vs white + vs near-black, used inline
+// next to a color picker. AA = 4.5:1 (text), AAA = 7:1, fail = below 4.5.
+function wcagMiniBadges(hex) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return '';
+  const cls = (r) => r >= 7 ? 'aaa' : r >= 4.5 ? 'aa' : 'fail';
+  const w = contrastRatio(hex, '#ffffff');
+  const k = contrastRatio(hex, '#1e1e1e');
+  return `<span class="${cls(w)}" title="Contraste sur blanc">${w.toFixed(1)}↕</span>` +
+         `<span class="${cls(k)}" title="Contraste sur fond sombre">${k.toFixed(1)}↕</span>`;
+}
+
 function wcagBadge(hex, against, label) {
   const r = contrastRatio(hex, against);
   let cls = 'fail';
@@ -690,22 +748,36 @@ function renderPaletteView() {
 let yamlTimer = null;
 function attachYamlHandler() {
   const ed = document.getElementById('yaml-editor');
+  const hl = document.getElementById('yaml-hl');
+  const wrap = document.querySelector('.yaml__editor-wrap');
+
+  // Re-highlight on every keystroke (sync with caret), debounce only the
+  // expensive parse + state replacement.
   ed.addEventListener('input', () => {
+    if (hl) {
+      const html = hljs.highlight(ed.value, { language: 'yaml', ignoreIllegals: true }).value;
+      hl.innerHTML = html + '\n';
+    }
     clearTimeout(yamlTimer);
     yamlTimer = setTimeout(() => {
       try {
         const parsed = parse(ed.value);
         if (typeof parsed !== 'object' || parsed == null) throw new Error('Le YAML doit être un objet');
         state = parsed;
-        ed.classList.remove('invalid');
+        wrap?.classList.remove('invalid');
         setYamlStatus('ok', 'parsé');
         renderAll();
         applyPreview();
       } catch (e) {
-        ed.classList.add('invalid');
+        wrap?.classList.add('invalid');
         setYamlStatus('error', 'erreur : ' + e.message.split('\n')[0]);
       }
     }, 600);
+  });
+
+  // Scroll sync: keep the highlighted overlay aligned with the textarea.
+  ed.addEventListener('scroll', () => {
+    if (hl) { hl.scrollTop = ed.scrollTop; hl.scrollLeft = ed.scrollLeft; }
   });
 }
 
@@ -762,9 +834,58 @@ iframe.addEventListener('load', () => {
   applyPreviewTheme();
 });
 
+// Help popup: event delegation on the document so we don't have to re-bind
+// after every renderAll(). The popup is a singleton positioned with
+// getBoundingClientRect — escapes any overflow-clipping ancestor.
+const helpPopup = document.getElementById('help-popup');
+function showHelp(btn) {
+  const text = btn.dataset.help;
+  if (!text || !helpPopup) return;
+  helpPopup.textContent = text;
+  helpPopup.hidden = false;
+  // Place below the button by default; flip up if it would clip the viewport.
+  const r = btn.getBoundingClientRect();
+  helpPopup.style.left = `${Math.max(8, r.left)}px`;
+  helpPopup.style.top  = `${r.bottom + 6}px`;
+  // After it's visible we know its size — flip if needed.
+  const pr = helpPopup.getBoundingClientRect();
+  if (pr.right > window.innerWidth - 8) {
+    helpPopup.style.left = `${Math.max(8, window.innerWidth - pr.width - 8)}px`;
+  }
+  if (pr.bottom > window.innerHeight - 8) {
+    helpPopup.style.top = `${r.top - pr.height - 6}px`;
+  }
+}
+function hideHelp() { if (helpPopup) helpPopup.hidden = true; }
+document.addEventListener('mouseover', (e) => {
+  const btn = e.target.closest?.('.help');
+  if (btn) showHelp(btn);
+});
+document.addEventListener('mouseout', (e) => {
+  const btn = e.target.closest?.('.help');
+  if (btn && !btn.contains(e.relatedTarget)) hideHelp();
+});
+document.addEventListener('focusin',  (e) => { const b = e.target.closest?.('.help'); if (b) showHelp(b); });
+document.addEventListener('focusout', (e) => { if (e.target.closest?.('.help')) hideHelp(); });
+
 renderAll();
 attachYamlHandler();
 attachTopbar();
 attachPreviewToggle();
-document.getElementById('yaml-editor').value = stringify(state, { lineWidth: 0 });
+setYamlText(stringify(state, { lineWidth: 0 }));
 setYamlStatus('ok', 'défaut chargé');
+
+// Fonts autocomplete: fill #list-font-files once. Endpoint is plain JSON
+// (array of stems without extension). 404 / network failure → empty list,
+// no big deal.
+fetch('/__api/fonts').then(r => r.ok ? r.json() : []).then(stems => {
+  const dl = document.getElementById('list-font-files');
+  if (!dl) return;
+  const frag = document.createDocumentFragment();
+  for (const stem of stems) {
+    const opt = document.createElement('option');
+    opt.value = stem;
+    frag.appendChild(opt);
+  }
+  dl.replaceChildren(frag);
+}).catch(() => {});
