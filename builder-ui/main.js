@@ -47,12 +47,17 @@ const DEFAULT_STATE = {
   'border-radius': {
     base: '0.75rem',
     targets: [
-      { selector: '.fr-input',  value: '0.75rem' },
-      { selector: '.fr-select', value: '0.75rem' },
-      { selector: '.fr-btn',    value: '0.75rem' },
-      { selector: '.fr-badge',  value: '0.75rem' },
-      { selector: '.fr-card',   value: '0.75rem', overflow: true },
-      { selector: '.fr-alert',  value: '0.75rem', overflow: true }
+      { selector: '.fr-input',           value: '0.75rem' },
+      { selector: '.fr-select',          value: '0.75rem' },
+      { selector: '.fr-btn',             value: '0.75rem' },
+      { selector: '.fr-badge',           value: '0.75rem' },
+      { selector: '.fr-card',            value: '0.75rem', overflow: true },
+      { selector: '.fr-alert',           value: '0.75rem', overflow: true },
+      { selector: '.fr-callout',         value: '0.75rem', overflow: true },
+      { selector: '.fr-notice',          value: '0.75rem' },
+      { selector: '.fr-consent-banner',  value: '0.75rem' },
+      { selector: '.fr-pagination__link', value: '0.75rem' },
+      { selector: '.fr-stepper__steps',  value: '0.75rem', overflow: true }
     ]
   },
   components: { remove: ['header', 'footer'] },
@@ -119,9 +124,9 @@ function renderMeta() {
   const idV = fieldId('version'), idD = fieldId('dsfr');
   return $section('Méta', `
     ${$field('version (du mapping)', $input({ id: idV, path: 'version', value: state.version, type: 'number', step: 1, min: 1 }), idV, null,
-      `Version du schéma de mapping.yml. Permet au builder de refuser des fichiers trop anciens si le schéma évolue.`)}
-    ${$field('dsfr (version du submodule)', $input({ id: idD, path: 'dsfr', value: state.dsfr, placeholder: '1.14.4' }), idD, 'doit matcher dsfr/ HEAD',
-      `Version DSFR cible. Doit matcher exactement le tag du submodule git checkouté dans dsfr/.\nLe builder lit cette valeur pour le banner ADEME et pour le check de drift upstream.`)}
+      'Version du schéma de `mapping.yml`. Permet au builder de refuser un fichier trop ancien si le schéma évolue.')}
+    ${$field('dsfr (version du submodule)', $input({ id: idD, path: 'dsfr', value: state.dsfr, placeholder: '1.14.4' }), idD, 'doit matcher `dsfr/` HEAD',
+      'Version DSFR cible. Doit matcher exactement le tag du submodule git checkouté dans `dsfr/`.\nUtilisé pour le banner et pour le check de drift upstream.')}
   `);
 }
 
@@ -144,12 +149,15 @@ function renderTypo() {
     }).join('');
   return $section('Typographie', `
     <h3>Primary</h3>
-    ${$field('css-name', $input({ id: idCss, path: 'typography.primary.css-name', value: p['css-name'], placeholder: 'Marianne' }), idCss, 'nom CSS de la fonte', `Le nom utilisé dans font-family CSS. Garder "Marianne" permet de neutraliser la fonte officielle sans casser var(--font-family-primary) dans le DSFR.\nSi tu changes ce nom, tous les composants DSFR cesseront de matcher.`)}
-    ${$field('files-source', $input({ id: idSrc, path: 'typography.primary.files-source', value: p['files-source'], placeholder: './assets/fonts/' }), idSrc, 'chemin vers les fichiers font', `Dossier où le builder cherche les .woff / .woff2 référencés ci-dessous. Relatif à la racine du projet.`)}
+    ${$field('css-name', $input({ id: idCss, path: 'typography.primary.css-name', value: p['css-name'], placeholder: 'Marianne' }), idCss, 'nom CSS de la fonte',
+      'Nom utilisé dans la propriété `font-family` du CSS. Garder `Marianne` permet de neutraliser la fonte officielle sans casser `var(--font-family-primary)` dans le DSFR.\nSi ce nom est changé, tous les composants DSFR qui pointent vers `Marianne` cesseront de matcher.')}
+    ${$field('files-source', $input({ id: idSrc, path: 'typography.primary.files-source', value: p['files-source'], placeholder: './assets/fonts/' }), idSrc, 'chemin vers les fichiers font',
+      'Dossier où le builder cherche les fichiers `.woff` / `.woff2` référencés ci-dessous. Relatif à la racine du projet.')}
     <div class="note">Poids → fichier normal / fichier italic (sans extension)</div>
     ${weights}
     <h3>Alt</h3>
-    ${$field('alt', `<select id="${esc(idAlt)}" name="${esc(idAlt)}" data-path="typography.alt"><option value="keep" ${state.typography?.alt === 'keep' ? 'selected' : ''}>keep (Spectral)</option></select>`, idAlt, null, `Fonte alternative (utilisée par fr-text--alt). "keep" = on garde celle du DSFR (Spectral).\nLe builder copie automatiquement les fichiers Spectral du submodule vers dist/fonts/.`)}
+    ${$field('alt', `<select id="${esc(idAlt)}" name="${esc(idAlt)}" data-path="typography.alt"><option value="keep" ${state.typography?.alt === 'keep' ? 'selected' : ''}>keep (Spectral)</option></select>`, idAlt, null,
+      'Fonte alternative (utilisée par `fr-text--alt`). `keep` = la fonte du DSFR (Spectral) est conservée.\nLe builder copie automatiquement les fichiers Spectral du submodule vers `dist/fonts/`.')}
   `);
 }
 
@@ -173,30 +181,28 @@ function renderColors() {
         </div>`;
       }).join('');
     return `<div data-family="${esc(family)}" class="family">
-      <h3>Famille</h3>
-      ${$field('Nom DSFR (clé)', `<input type="text" id="${esc(idKey)}" name="${esc(idKey)}" value="${esc(family)}" data-key="family-key">`, idKey, 'identifiant dans le mapping (ex: blue-france)')}
-      ${$field('Rename (libre)', `<input type="text" id="${esc(idRen)}" name="${esc(idRen)}" value="${esc(cfg.rename)}" data-key="rename" placeholder="blue-ate">`, idRen, 'utilisé par le post-process sed')}
+      <h3>Famille <button type="button" class="help" data-help="Une famille = un anchor + un mapping de grades (75, 100, …, 975, sun, main).&#10;Le builder calcule chacun des 11 grades par remapping LCh autour de l&#39;anchor : la teinte (h°) et la chroma (C*) viennent de l&#39;anchor, la luminance (L*) suit le profil DSFR." aria-label="Aide famille" tabindex="0">?</button></h3>
+      ${$field('Nom DSFR (clé)', `<input type="text" id="${esc(idKey)}" name="${esc(idKey)}" value="${esc(family)}" data-key="family-key">`, idKey, 'identifiant dans le mapping (ex: blue-france)',
+        'Nom de la famille DSFR à overrider. Doit matcher une clé existante dans `dsfr/src/module/color/variable/_options.scss` (`blue-france`, `red-marianne`, etc.). Le builder regénère cette section dans le workspace avec les valeurs LCh recalculées.')}
+      ${$field('Rename (libre)', `<input type="text" id="${esc(idRen)}" name="${esc(idRen)}" value="${esc(cfg.rename)}" data-key="rename" placeholder="blue-ate">`, idRen, 'nouveau nom dans le CSS final',
+        'Texte avec lequel le post-process sed remplace `blue-france` (ou la clé d’origine) dans `dist/*.css|js`.\nValeur libre — toute chaîne sans espaces marche. Sert à neutraliser les références État du CSS final.\nExemples : `blue-ate`, `vert-ademe`, `theme-2026`.')}
       <div class="field field--color">
-        <label for="${esc(idHex)}">Anchor</label>
+        <label for="${esc(idHex)}">Anchor <button type="button" class="help" data-help="Couleur de référence (un seul hex). Tous les grades de la famille sont recalculés par déplacement de luminance autour de cet anchor — la teinte et la chroma sont conservées.&#10;&#10;C&#39;est la couleur que &#96;main-XXX&#96; portera. Le numéro du grade &#96;main&#96; est dérivé de la luminance LCh : &#96;main-444&#96; pour L*=44.4, &#96;main-560&#96; pour L*=56.0." aria-label="Aide anchor" tabindex="0">?</button></label>
         <input type="color" id="${esc(idCol)}" name="${esc(idCol)}" value="${esc(anchorHex.toLowerCase())}" data-key="anchor-color">
         <input type="text" id="${esc(idHex)}" name="${esc(idHex)}" class="hex" value="${esc(anchorHex)}" data-key="anchor-hex" placeholder="#4950FB" pattern="^#?[0-9a-fA-F]{6}$">
-        <span class="wcag-mini" title="Contraste WCAG du grade main (anchor) sur fond blanc / sombre">
+        <span class="wcag-mini">
           ${wcagMiniBadges(anchorHex)}
         </span>
+        <button type="button" class="help" data-help="Ratios de contraste WCAG du grade main (= anchor lui-même) :&#10;- 1ʳᵉ valeur : sur fond blanc (&#96;#ffffff&#96;)&#10;- 2ᵉ valeur : sur fond sombre (&#96;#1e1e1e&#96;, ≈ DSFR text-default-grey)&#10;&#10;Code couleur :&#10;- vert (AAA) : ratio ≥ 7 (WCAG niveau AAA texte)&#10;- jaune (AA) : ratio ≥ 4.5 (WCAG niveau AA texte)&#10;- rouge (fail) : sous 4.5, RGAA AA non garanti pour usage texte&#10;&#10;Note : le grade main est rarement utilisé pour du texte (cf. fonctions DSFR &#96;text-action-high-XXX&#96;), un fail ici n&#39;est donc pas bloquant. La vue Palette LCh affiche un check plus complet sur &#96;sun-157&#96;, &#96;main&#96;, &#96;625&#96;." aria-label="Aide WCAG" tabindex="0">?</button>
       </div>
-      <h3>Recalibrate-grade</h3>
+      <h3>Recalibrate-grade <button type="button" class="help" data-help="Émet des alias de grades pour ne casser ni les références internes DSFR ni le nouveau naming.&#10;&#10;Exemple : &#96;main-525: main-444&#96; veut dire « le grade DSFR original &#96;main-525&#96; n&#39;existe plus — il s&#39;appelle maintenant &#96;main-444&#96; ». Le builder émet alors &#96;--blue-france-main-525&#96; ET &#96;--blue-france-main-444&#96; avec la même valeur, donc :&#10;1. Les composants DSFR qui pointent vers &#96;main-525&#96; continuent à fonctionner&#10;2. Le nouveau nom &#96;main-444&#96; (cohérent avec L*×10) est dispo&#10;&#10;Le builder gère les &#96;main-&#96; (changement après calcul de L*×10) automatiquement, mais pour &#96;sun-XXX → sun-YYY&#96; il faut le déclarer explicitement." aria-label="Aide recalibrate" tabindex="0">?</button></h3>
       ${recal}
       <button class="add-btn" data-action="add-recal">+ recalibrate</button>
       <hr style="border: 0; border-top: 1px solid #eee; margin: 0.75rem 0">
     </div>`;
   }).join('');
   return $section('Couleurs', blocks, { help:
-`Pour chaque famille DSFR (blue-france, red-marianne…), définit un anchor de couleur. Le builder calcule automatiquement les 11 grades (75 → 975, sun, main) via remapping LCh autour de cet anchor.
-
-• Nom DSFR (clé) : identifiant tel qu'il apparaît dans dsfr/_options.scss.
-• Rename : nom libre utilisé par le post-process sed pour neutraliser le préfixe État.
-• Anchor : couleur de base. Le grade main = round(L*10).
-• Recalibrate : émet un alias entre 2 noms de grade (ancien et nouveau pointent sur la même valeur, pour ne casser ni les références internes DSFR ni le nouveau naming).` });
+'Pour chaque famille DSFR (`blue-france`, `red-marianne`…), définit un anchor de couleur. Le builder calcule automatiquement les 11 grades (`75` → `975`, `sun`, `main`) via remapping LCh autour de cet anchor.\n\n• `Nom DSFR (clé)` : identifiant dans `dsfr/_options.scss`.\n• `Rename` : nom libre utilisé par le post-process sed pour neutraliser le préfixe État dans le CSS final.\n• `Anchor` : couleur de référence. Sert à dériver tous les autres grades.\n• `Recalibrate` : émet un alias entre 2 noms de grade (l\'ancien ET le nouveau pointent sur la même valeur).' });
 }
 
 // border-radius values in the mapping are stored as full CSS strings
@@ -228,14 +234,12 @@ function renderRadius() {
   }).join('');
   return $section('Border-radius', `
     ${$field('Base', `<input type="number" id="${esc(idBase)}" name="${esc(idBase)}" value="${esc(remOf(state['border-radius']?.base))}" data-path="border-radius.base" data-rem placeholder="0.75" step="0.125" min="0" max="4">`, idBase, 'en rem',
-      'Valeur de référence non utilisée par le builder pour le moment. Sert de mémo / source de vérité pour les valeurs émises sur les targets.')}
-    <h3>Targets <small style="font-weight: 400; color: #888">(values en rem)</small> <button type="button" class="help" data-help="Chaque target = un sélecteur CSS + le radius à lui appliquer dans dist/dsfr-ademe.css.&#10;&#10;overflow : ajoute overflow: hidden à la règle.&#10;Indispensable pour les composants dont la décoration (bordure simulée, barre colorée, image) déborde du radius — sans ça, les coins arrondis ne clippent pas le contenu.&#10;Exemples : .fr-card (image qui déborde), .fr-alert (gradient barre 40px à gauche)." aria-label="Aide overflow" tabindex="0">?</button></h3>
+      'Valeur de référence (mémo). Pas utilisée directement par le builder pour le moment, sert de source de vérité pour les valeurs émises sur les targets.')}
+    <h3>Targets <small style="font-weight: 400; color: #888">(values en rem)</small> <button type="button" class="help" data-help="Chaque target = un sélecteur CSS + un radius à appliquer dans &#96;dist/dsfr-ademe.css&#96;.&#10;&#10;&#96;overflow&#96; : ajoute &#96;overflow: hidden&#96; à la règle.&#10;Indispensable pour les composants dont la décoration (bordure simulée, barre colorée, image) déborde du radius — sans ça, les coins arrondis ne clippent pas le contenu.&#10;Exemples : &#96;.fr-card&#96; (image qui déborde), &#96;.fr-alert&#96; (gradient barre 40px à gauche)." aria-label="Aide overflow" tabindex="0">?</button></h3>
     ${targets}
     <button class="add-btn" data-action="add-target">+ target</button>
   `, { help:
-`Border-radius par sélecteur CSS. Le builder émet une règle simple ".fr-card { border-radius: 0.75rem }" en fin de cascade, donc bat naturellement les radii DSFR par défaut.
-
-L'option overflow ajoute "overflow: hidden" — utile quand la décoration du composant (barres colorées en background, gradients, etc.) ne respecte pas le border-radius (cas .fr-card et .fr-alert).` });
+'Border-radius par sélecteur CSS. Le builder émet une règle simple `.fr-card { border-radius: 0.75rem }` en fin de cascade, donc bat naturellement les radii DSFR par défaut.\n\nL\'option `overflow` ajoute `overflow: hidden` — utile quand la décoration du composant (barres colorées en background, gradients, etc.) ne respecte pas le `border-radius` (cas `.fr-card` et `.fr-alert`).' });
 }
 
 function renderShadows() {
@@ -243,11 +247,11 @@ function renderShadows() {
   const idL = fieldId('shadow-light'), idD = fieldId('shadow-dark');
   return $section('Elevation (shadows)', `
     ${$field('Light shadow-color', $input({ id: idL, path: 'elevation.shadow-color.light', value: sc.light, placeholder: 'rgba(0, 0, 0, 0.16)' }), idL, 'CSS color',
-      'Override de --shadow-color en mode light. DSFR utilise rgba(0, 0, 18, 0.16) par défaut (teinte bleu marine héritée de Marianne). Mettre rgba(0, 0, 0, 0.16) neutralise.')}
+      'Override de `--shadow-color` en mode light. DSFR utilise `rgba(0, 0, 18, 0.16)` par défaut (teinte bleu marine héritée de Marianne). Mettre `rgba(0, 0, 0, 0.16)` neutralise.')}
     ${$field('Dark shadow-color',  $input({ id: idD, path: 'elevation.shadow-color.dark',  value: sc.dark,  placeholder: 'rgba(0, 0, 0, 0.32)' }), idD, 'mode dark',
-      'Override de --shadow-color émis sous :root[data-fr-theme=dark]. DSFR par défaut : rgba(0, 0, 18, 0.32).')}
+      'Override de `--shadow-color` émis sous `:root[data-fr-theme=dark]`. DSFR par défaut : `rgba(0, 0, 18, 0.32)`.')}
   `, { help:
-`Couleur de l'ombre portée. DSFR la lit via --shadow-color (utilisée par .fr-card--shadow et autres élévations).` });
+'Couleur de l\'ombre portée. DSFR la lit via `--shadow-color` (utilisée par `.fr-card--shadow` et autres élévations).' });
 }
 
 function renderComponents() {
@@ -262,11 +266,7 @@ function renderComponents() {
     </label>`;
   }).join('');
   return $section('Composants à exclure', `<div class="checkboxes">${items}</div>`, { cliOnly: true, help:
-`Liste de composants DSFR à retirer du build (header, footer, etc.).
-
-Le builder strip les @import correspondants dans component/{main,legacy,print}.scss du workspace, donc le composant n'apparaît plus dans dsfr-ademe.css du tout.
-
-Aucun effet sur la preview live (la preview charge le CSS déjà buildé). Le changement n'est visible qu'après pnpm build.` });
+'Liste de composants DSFR à retirer du build (`header`, `footer`, etc.).\n\nLe builder strip les `@import` correspondants dans `component/{main,legacy,print}.scss` du workspace, donc le composant n\'apparaît plus dans `dsfr-ademe.css` du tout.\n\nAucun effet sur la preview live (qui charge le CSS déjà buildé). Le changement n\'est visible qu\'après `pnpm build`.' });
 }
 
 function renderPostProcess() {
@@ -276,16 +276,14 @@ function renderPostProcess() {
     return `<label class="toggle" for="${esc(id)}"><input type="checkbox" id="${esc(id)}" name="${esc(id)}" data-path="${esc(path)}" ${checked ? 'checked' : ''}> <span>${esc(label)}</span></label>`;
   };
   return $section('Post-process', `
-    <h3>Rename CSS final (sed) <button type="button" class="help" data-help="Renomme blue-france → blue-ate (ou ce que tu as mis dans 'Rename') et red-marianne → red-laura dans le CSS final.&#10;&#10;C'est un sed sur dist/*.css|js après le build. Le safety-check refuse de renommer si le mot apparaît dans un contexte ambigu (commentaire, prose), ce qui éviterait des bugs surprenants." aria-label="Aide rename" tabindex="0">?</button></h3>
+    <h3>Rename CSS final (sed) <button type="button" class="help" data-help="Remplace &#96;blue-france&#96; par la valeur de &#96;Rename&#96; (et &#96;red-marianne&#96; par la sienne) dans le CSS final.&#10;&#10;C&#39;est un sed sur &#96;dist/*.css|js&#96; après le build. Le &#96;safety-check&#96; refuse de renommer si le mot apparaît dans un contexte ambigu (commentaire, prose), pour éviter des renommages parasites." aria-label="Aide rename" tabindex="0">?</button></h3>
     ${t(fieldId('pp-rename-enabled'), 'post-process.rename.enabled', pp.enabled, 'enabled')}
     ${t(fieldId('pp-rename-safety'),  'post-process.rename.safety-check', pp['safety-check'], 'safety-check (refuse les renames ambigus)')}
-    <h3>PostCSS <button type="button" class="help" data-help="enabled : applique mqpacker (regroupe les @media), combine-duplicated-selectors et discard-duplicates sur dist/*.css. Réduit la taille de ~24%, et la sortie est byte-identique au CSS DSFR officiel.&#10;&#10;banner : insère un commentaire en tête du fichier ('ADEME Design System — based on DSFR ${state.dsfr ?? 'X.Y.Z'} (MIT)…')." aria-label="Aide postcss" tabindex="0">?</button></h3>
+    <h3>PostCSS <button type="button" class="help" data-help="&#96;enabled&#96; : applique &#96;mqpacker&#96; (regroupe les &#96;@media&#96;), &#96;combine-duplicated-selectors&#96; et &#96;discard-duplicates&#96; sur &#96;dist/*.css&#96;. Réduit la taille d&#39;environ 24% et produit une sortie byte-identique au CSS DSFR officiel.&#10;&#10;&#96;banner&#96; : insère un commentaire en tête du fichier (&#96;ADEME Design System — based on DSFR &lt;version&gt; (MIT)…&#96;)." aria-label="Aide postcss" tabindex="0">?</button></h3>
     ${t(fieldId('pc-enabled'), 'post-css.enabled', pc.enabled !== false, 'enabled (mqpacker + dedup)')}
     ${t(fieldId('pc-banner'),  'post-css.banner',  pc.banner !== false,  'banner ADEME en tête du fichier')}
   `, { cliOnly: true, help:
-`Étapes appliquées après la compilation sass, sur le CSS final dans dist/.
-
-Toutes opt-out via leur toggle. Aucun effet sur la preview live.` });
+'Étapes appliquées après la compilation sass, sur le CSS final dans `dist/`.\n\nChaque sous-étape est opt-out via son toggle. Aucun effet sur la preview live.' });
 }
 
 function renderAll() {
@@ -451,6 +449,43 @@ function applyPreview() {
   }
   // textContent — same content goes through the CSSOM parser, no HTML.
   styleEl.textContent = css;
+  pushPreviewState();
+}
+
+// Send the live state snapshot to the example iframe. The iframe regenerates
+// its palette section titles / swatches and the font diagnostic from this
+// payload, so renaming a family or changing the css-name in the typo section
+// reflects in the témoin without a full reload.
+function pushPreviewState() {
+  if (previewMode !== 'example') return;
+  const iframe = document.getElementById('preview-frame');
+  const win = iframe?.contentWindow;
+  if (!win) return;
+  const palettes = [];
+  for (const [family, cfg] of Object.entries(state.colors ?? {})) {
+    if (cfg.generation !== 'lch-remap' || !cfg.anchor?.hex) continue;
+    let pal;
+    try {
+      pal = computeFamilyPalette({
+        anchor: cfg.anchor.hex,
+        recalibrate: cfg['recalibrate-grade'] ?? {},
+        addGrades: cfg['add-grades'] ?? {},
+        semanticRemap: deriveSemanticRemap(family, cfg)
+      });
+    } catch { continue; }
+    palettes.push({
+      family,
+      renamed: cfg.rename || family,
+      anchorHex: cfg.anchor.hex,
+      grades: pal.map(({ name, values }) => ({ name, hex: values[0] }))
+    });
+  }
+  win.postMessage({
+    type: 'ademe-state',
+    theme: previewTheme,
+    fontCssName: state.typography?.primary?.['css-name'] ?? 'Marianne',
+    palettes
+  }, '*');
 }
 
 // DSFR _sets.scss combos that emit --<family>-<lightGrade>-<darkGrade> CSS
@@ -658,6 +693,9 @@ function applyPreviewTheme() {
 
   const view = document.getElementById('palette-view');
   if (view) view.setAttribute('data-fr-theme', resolvedTheme);
+  // Re-push state so the iframe sees the new theme value (its segmented
+  // selector mirrors the builder-ui's theme button).
+  pushPreviewState();
 }
 
 // =============================================================================
@@ -833,15 +871,30 @@ iframe.addEventListener('load', () => {
   applyPreview();
   applyPreviewTheme();
 });
+window.addEventListener('message', (e) => {
+  if (e.data?.type === 'ademe-ready') pushPreviewState();
+});
 
 // Help popup: event delegation on the document so we don't have to re-bind
 // after every renderAll(). The popup is a singleton positioned with
 // getBoundingClientRect — escapes any overflow-clipping ancestor.
 const helpPopup = document.getElementById('help-popup');
+// Tiny markdown subset: backticks → <code>. Everything outside backticks is
+// HTML-escaped. Safe to inject into innerHTML afterwards.
+function helpToHtml(text) {
+  const parts = String(text).split(/(`[^`]+`)/);
+  return parts.map(p => {
+    if (p.startsWith('`') && p.endsWith('`') && p.length > 1) {
+      return `<code>${esc(p.slice(1, -1))}</code>`;
+    }
+    return esc(p);
+  }).join('');
+}
+
 function showHelp(btn) {
   const text = btn.dataset.help;
   if (!text || !helpPopup) return;
-  helpPopup.textContent = text;
+  helpPopup.innerHTML = helpToHtml(text);
   helpPopup.hidden = false;
   // Place below the button by default; flip up if it would clip the viewport.
   const r = btn.getBoundingClientRect();

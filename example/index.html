@@ -30,6 +30,10 @@
     <fieldset class="fr-segmented fr-segmented--sm" aria-label="Thème">
       <div class="fr-segmented__elements">
         <div class="fr-segmented__element">
+          <input type="radio" id="theme-auto" name="ademe-theme" value="auto" checked>
+          <label class="fr-label" for="theme-auto">Auto</label>
+        </div>
+        <div class="fr-segmented__element">
           <input type="radio" id="theme-light" name="ademe-theme" value="light">
           <label class="fr-label" for="theme-light">Light</label>
         </div>
@@ -47,10 +51,10 @@
 
   <section class="ademe-section" style="border: 1px solid var(--border-default-grey); padding: 1rem; border-radius: 0.5rem; background: var(--background-alt-grey)">
     <h2 style="margin-top: 0">Diagnostic typographie</h2>
-    <p>Comparaison directe des trois familles. Si les trois lignes ont des largeurs <strong>différentes</strong>, l'override <code>Marianne → PublicSans</code> est bien appliqué.</p>
+    <p>Comparaison directe des trois familles. Si les trois lignes ont des largeurs <strong>différentes</strong>, l'override <code data-font-rename>Marianne → PublicSans</code> est bien appliqué.</p>
     <div style="display: grid; grid-template-columns: 220px 1fr; gap: 0.25rem 1rem; align-items: baseline; font-size: 1.1rem">
-      <div style="font-family: monospace; opacity: 0.7">font-family: 'Marianne'</div>
-      <div style="font-family: 'Marianne', monospace" id="probe-marianne">The quick brown fox 0123456789</div>
+      <div style="font-family: monospace; opacity: 0.7">font-family: '<span data-font-name>Marianne</span>'</div>
+      <div data-font-probe style="font-family: 'Marianne', monospace" id="probe-marianne">The quick brown fox 0123456789</div>
       <div style="font-family: monospace; opacity: 0.7">font-family: 'NoSuchFont'</div>
       <div style="font-family: 'NoSuchFont', monospace">The quick brown fox 0123456789</div>
       <div style="font-family: monospace; opacity: 0.7">font-family: monospace</div>
@@ -67,41 +71,43 @@
     <p class="fr-text--alt">Spectral Regular conservée pour les citations et textes décoratifs.</p>
   </section>
 
-  <section class="ademe-section">
-    <h2>Palette Blue ATE — anchor <code>#4950FB</code></h2>
-    <p class="fr-text--sm">L*=44,4 C*=99,7 h°=301°. Grades calculés via le profil LCh.</p>
-    <div class="ademe-grade-row">
-      <div class="ademe-grade ademe-grade--dark" style="background:#1e193a">75</div>
-      <div class="ademe-grade ademe-grade--dark" style="background:#241f45">100</div>
-      <div class="ademe-grade ademe-grade--dark" style="background:#2b254d">125</div>
-      <div class="ademe-grade ademe-grade--dark" style="background:#2e2d87">200</div>
-      <div class="ademe-grade ademe-grade--dark" style="background:#001977">sun-157</div>
-      <div class="ademe-grade ademe-grade--dark" style="background:#4950fb">main-444</div>
-      <div class="ademe-grade ademe-grade--light" style="background:#907fff">625</div>
-      <div class="ademe-grade ademe-grade--light" style="background:#d4c6ff">850</div>
-      <div class="ademe-grade ademe-grade--light" style="background:#e9e1ff">925</div>
-      <div class="ademe-grade ademe-grade--light" style="background:#f0ebff">950</div>
-      <div class="ademe-grade ademe-grade--light" style="background:#f7f4ff">975</div>
-    </div>
-  </section>
+  <div id="palettes-host">
+    <section class="ademe-section" data-family="blue-france">
+      <h2>Palette <span data-palette-rename>Blue ATE</span> — anchor <code data-palette-anchor>#4950FB</code></h2>
+      <p class="fr-text--sm">Grades calculés via le profil LCh.</p>
+      <div class="ademe-grade-row" data-palette-grades>
+        <div class="ademe-grade ademe-grade--dark" style="background:#1e193a">75</div>
+        <div class="ademe-grade ademe-grade--dark" style="background:#241f45">100</div>
+        <div class="ademe-grade ademe-grade--dark" style="background:#2b254d">125</div>
+        <div class="ademe-grade ademe-grade--dark" style="background:#2e2d87">200</div>
+        <div class="ademe-grade ademe-grade--dark" style="background:#001977">sun-157</div>
+        <div class="ademe-grade ademe-grade--dark" style="background:#4950fb">main-444</div>
+        <div class="ademe-grade ademe-grade--light" style="background:#907fff">625</div>
+        <div class="ademe-grade ademe-grade--light" style="background:#d4c6ff">850</div>
+        <div class="ademe-grade ademe-grade--light" style="background:#e9e1ff">925</div>
+        <div class="ademe-grade ademe-grade--light" style="background:#f0ebff">950</div>
+        <div class="ademe-grade ademe-grade--light" style="background:#f7f4ff">975</div>
+      </div>
+    </section>
 
-  <section class="ademe-section">
-    <h2>Palette Red Laura — anchor <code>#FF3333</code></h2>
-    <p class="fr-text--sm">L*=56,0 C*=89,3 h°=34°.</p>
-    <div class="ademe-grade-row">
-      <div class="ademe-grade ademe-grade--dark" style="background:#37120c">75</div>
-      <div class="ademe-grade ademe-grade--dark" style="background:#411712">100</div>
-      <div class="ademe-grade ademe-grade--dark" style="background:#491d17">125</div>
-      <div class="ademe-grade ademe-grade--dark" style="background:#770b0f">200</div>
-      <div class="ademe-grade ademe-grade--dark" style="background:#560200">sun-157</div>
-      <div class="ademe-grade ademe-grade--dark" style="background:#ff3333">main-560</div>
-      <div class="ademe-grade ademe-grade--light" style="background:#f95c4e">625</div>
-      <div class="ademe-grade ademe-grade--light" style="background:#ffbfb4">850</div>
-      <div class="ademe-grade ademe-grade--light" style="background:#ffded8">925</div>
-      <div class="ademe-grade ademe-grade--light" style="background:#ffe9e5">950</div>
-      <div class="ademe-grade ademe-grade--light" style="background:#fff3f1">975</div>
-    </div>
-  </section>
+    <section class="ademe-section" data-family="red-marianne">
+      <h2>Palette <span data-palette-rename>Red Laura</span> — anchor <code data-palette-anchor>#FF3333</code></h2>
+      <p class="fr-text--sm">Grades calculés via le profil LCh.</p>
+      <div class="ademe-grade-row" data-palette-grades>
+        <div class="ademe-grade ademe-grade--dark" style="background:#37120c">75</div>
+        <div class="ademe-grade ademe-grade--dark" style="background:#411712">100</div>
+        <div class="ademe-grade ademe-grade--dark" style="background:#491d17">125</div>
+        <div class="ademe-grade ademe-grade--dark" style="background:#770b0f">200</div>
+        <div class="ademe-grade ademe-grade--dark" style="background:#560200">sun-157</div>
+        <div class="ademe-grade ademe-grade--dark" style="background:#ff3333">main-560</div>
+        <div class="ademe-grade ademe-grade--light" style="background:#f95c4e">625</div>
+        <div class="ademe-grade ademe-grade--light" style="background:#ffbfb4">850</div>
+        <div class="ademe-grade ademe-grade--light" style="background:#ffded8">925</div>
+        <div class="ademe-grade ademe-grade--light" style="background:#ffe9e5">950</div>
+        <div class="ademe-grade ademe-grade--light" style="background:#fff3f1">975</div>
+      </div>
+    </section>
+  </div>
 
   <section class="ademe-section">
     <h2>Boutons</h2>
@@ -344,8 +350,89 @@
 
   <script>
     const root = document.documentElement;
+
+    // Local theme switcher: 'auto' resolves prefers-color-scheme at click time
+    // (DSFR JS persists the last explicit data-fr-theme, so removeAttribute
+    // alone won't bring back OS preference).
+    const resolveTheme = (value) =>
+      value === 'auto'
+        ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : value;
     for (const r of document.querySelectorAll('input[name="ademe-theme"]')) {
-      r.addEventListener('change', () => root.setAttribute('data-fr-theme', r.value));
+      r.addEventListener('change', () => root.setAttribute('data-fr-theme', resolveTheme(r.value)));
+    }
+
+    // Builder-UI sync: when this page is hosted in the builder iframe, the
+    // parent posts {theme, fontCssName, palettes} so the témoin reflects the
+    // current mapping.yml (renames, anchors, font css-name) live.
+    const esc = (s) => String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+    const palettesHost = document.getElementById('palettes-host');
+    const renderSwatch = (hex, label) => {
+      const safe = /^#[0-9a-fA-F]{3,8}$/.test(hex) ? hex : '#000000';
+      const r = parseInt(safe.slice(1, 3), 16), g = parseInt(safe.slice(3, 5), 16), b = parseInt(safe.slice(5, 7), 16);
+      const cls = (0.299 * r + 0.587 * g + 0.114 * b) < 140 ? 'ademe-grade--dark' : 'ademe-grade--light';
+      const div = document.createElement('div');
+      div.className = `ademe-grade ${cls}`;
+      div.style.background = safe;
+      div.textContent = label;
+      return div;
+    };
+    const titleCase = (s) => String(s).split('-').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ');
+    window.addEventListener('message', (e) => {
+      const msg = e.data;
+      if (!msg || msg.type !== 'ademe-state') return;
+
+      if (msg.theme) {
+        root.setAttribute('data-fr-theme', resolveTheme(msg.theme));
+        const radio = document.querySelector(`input[name="ademe-theme"][value="${esc(msg.theme)}"]`);
+        if (radio) radio.checked = true;
+      }
+
+      const cssName = msg.fontCssName || 'Marianne';
+      for (const el of document.querySelectorAll('[data-font-name]')) el.textContent = cssName;
+      for (const el of document.querySelectorAll('[data-font-probe]')) {
+        el.style.fontFamily = `'${cssName.replace(/'/g, "\\'")}', monospace`;
+      }
+      for (const el of document.querySelectorAll('[data-font-rename]')) {
+        el.textContent = `${cssName} → ${msg.fontPrimaryStem || 'Public Sans'}`;
+      }
+
+      if (palettesHost && Array.isArray(msg.palettes) && msg.palettes.length) {
+        const ORDER = ['75', '100', '125', '200', 'sun-157', 'main', '625', '850', '925', '950', '975'];
+        palettesHost.replaceChildren(...msg.palettes.map(({ family, renamed, anchorHex, grades }) => {
+          const byName = Object.fromEntries(grades.map(g => [g.name, g.hex]));
+          const mainEntry = grades.find(g => g.name.startsWith('main-'));
+          const visible = ORDER.map(slot => {
+            if (slot === 'main' && mainEntry) return { name: mainEntry.name, hex: mainEntry.hex };
+            if (byName[slot]) return { name: slot, hex: byName[slot] };
+            return null;
+          }).filter(Boolean);
+          const sec = document.createElement('section');
+          sec.className = 'ademe-section';
+          sec.dataset.family = family;
+          const h2 = document.createElement('h2');
+          h2.append('Palette ');
+          const renameSp = document.createElement('span');
+          renameSp.dataset.paletteRename = '';
+          renameSp.textContent = titleCase(renamed);
+          const anchorCode = document.createElement('code');
+          anchorCode.dataset.paletteAnchor = '';
+          anchorCode.textContent = anchorHex;
+          h2.append(renameSp, ' — anchor ', anchorCode);
+          const p = document.createElement('p');
+          p.className = 'fr-text--sm';
+          p.textContent = 'Grades calculés via le profil LCh.';
+          const row = document.createElement('div');
+          row.className = 'ademe-grade-row';
+          row.dataset.paletteGrades = '';
+          for (const g of visible) row.appendChild(renderSwatch(g.hex, g.name));
+          sec.append(h2, p, row);
+          return sec;
+        }));
+      }
+    });
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'ademe-ready' }, '*');
     }
 
     // Consent banner — minimal demo wiring (DSFR doesn't ship default behavior).

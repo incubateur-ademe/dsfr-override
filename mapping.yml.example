@@ -55,9 +55,16 @@ border-radius:
   targets:
     - { selector: ".fr-input",       value: "0.75rem" }
     - { selector: ".fr-select",      value: "0.75rem" }
+    - { selector: ".fr-btn",         value: "0.75rem" }
     - { selector: ".fr-badge",       value: "0.75rem" }
     - { selector: ".fr-card",        value: "0.75rem", overflow: true }
-    - { selector: ".fr-alert",       value: "0.75rem" }
+    - { selector: ".fr-alert",       value: "0.75rem", overflow: true }
+    - { selector: ".fr-callout",     value: "0.75rem", overflow: true }
+    - { selector: ".fr-notice",      value: "0.75rem" }
+    - { selector: ".fr-consent-banner", value: "0.75rem" }
+    - { selector: ".fr-pagination__link", value: "0.75rem" }
+    - { selector: ".fr-stepper__steps", value: "0.75rem", overflow: true }
+    - { selector: ".fr-input-wrap--addon > *:not(:first-child):not(:last-child)", value: "0" }
     - { selector: ".fr-input-wrap--addon > *:first-child:not(:last-child)", value: "0.75rem 0 0 0.75rem" }
     - { selector: ".fr-input-wrap--addon > *:last-child:not(:first-child)", value: "0 0.75rem 0.75rem 0" }
 
