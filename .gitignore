@@ -5,6 +5,7 @@ dist/
 .tmp/
 .cache/
 .playwright-mcp/
+.claude/
 
 # Bundle prod produit par `pnpm build:ui` (déployable, pas tracké)
 builder-ui/dist/
