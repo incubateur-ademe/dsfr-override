@@ -34,10 +34,18 @@
 
     <section class="preview" aria-label="Aperçu">
       <div class="preview__bar">
-        <span style="font-weight: 600">Preview :</span>
-        <button data-mode="example" class="active">Témoin</button>
-        <button data-mode="gallery">Galerie</button>
-        <button data-mode="palette">Palette LCh</button>
+        <span class="label">Vue</span>
+        <div class="segmented" role="group" aria-label="Mode preview">
+          <button data-mode="example" class="active" aria-pressed="true">Témoin</button>
+          <button data-mode="gallery" aria-pressed="false">Galerie</button>
+          <button data-mode="palette" aria-pressed="false">Palette LCh</button>
+        </div>
+        <span class="label">Thème</span>
+        <div class="segmented" role="group" aria-label="Thème de l'aperçu">
+          <button data-theme="auto" class="active" aria-pressed="true" title="Suit prefers-color-scheme">Auto</button>
+          <button data-theme="light" aria-pressed="false">Light</button>
+          <button data-theme="dark"  aria-pressed="false">Dark</button>
+        </div>
       </div>
       <iframe id="preview-frame" src="/example/index.html" title="Aperçu"></iframe>
       <div id="palette-view" class="palette-view" hidden></div>

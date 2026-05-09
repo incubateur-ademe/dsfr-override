@@ -80,34 +80,66 @@ function $section(title, body, opts = {}) {
   const badge = opts.cliOnly ? ' <span class="badge" title="Modification non visible dans la preview, appliquée au build CLI uniquement">build CLI</span>' : '';
   return `<section class="section"><h2>${esc(title)}${badge}</h2>${body}</section>`;
 }
-function $field(label, input) {
-  return `<div class="field"><label>${esc(label)}</label>${input}</div>`;
+// fieldId() returns a stable id derived from a path so labels can `for=id`
+// the inputs and assistive tech / form autofill work correctly.
+const slug = (s) => String(s).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
+function fieldId(path) { return 'f-' + slug(path); }
+
+function $field(label, input, id, hint) {
+  const hintHtml = hint ? `<small style="color:#888;font-size:10px">${esc(hint)}</small>` : '';
+  const labelOpen = id ? `<label for="${esc(id)}">` : `<label>`;
+  return `<div class="field">${labelOpen}${esc(label)}${hintHtml ? ' ' + hintHtml : ''}</label>${input}</div>`;
+}
+function $input(opts) {
+  const { id, path, value, type = 'text', placeholder = '', step, min, max, list } = opts;
+  const attrs = [
+    `type="${esc(type)}"`,
+    `id="${esc(id)}"`,
+    `name="${esc(id)}"`,
+    `data-path="${esc(path)}"`,
+    value != null ? `value="${esc(value)}"` : '',
+    placeholder ? `placeholder="${esc(placeholder)}"` : '',
+    step != null ? `step="${esc(step)}"` : '',
+    min != null ? `min="${esc(min)}"` : '',
+    max != null ? `max="${esc(max)}"` : '',
+    list ? `list="${esc(list)}"` : ''
+  ].filter(Boolean).join(' ');
+  return `<input ${attrs}>`;
 }
 
 function renderMeta() {
+  const idV = fieldId('version'), idD = fieldId('dsfr');
   return $section('Méta', `
-    ${$field('version', `<input type="text" data-path="version" value="${esc(state.version)}">`)}
-    ${$field('dsfr', `<input type="text" data-path="dsfr" value="${esc(state.dsfr)}">`)}
+    ${$field('version (du mapping)', $input({ id: idV, path: 'version', value: state.version, type: 'number', step: 1, min: 1 }), idV)}
+    ${$field('dsfr (version du submodule)', $input({ id: idD, path: 'dsfr', value: state.dsfr, placeholder: '1.14.4' }), idD, 'doit matcher dsfr/ HEAD')}
   `);
 }
 
 function renderTypo() {
   const p = state.typography?.primary ?? {};
+  const idCss = fieldId('typo-css-name');
+  const idSrc = fieldId('typo-files-source');
+  const idAlt = fieldId('typo-alt');
   const weights = Object.entries(p.weights ?? {})
-    .map(([w, v]) => `<div class="list-row" data-weight="${esc(w)}">
-      <input type="text" value="${esc(w)}" data-key="weight" style="max-width: 50px">
-      <input type="text" value="${esc(v?.normal)}" data-key="normal" placeholder="PublicSans-Regular">
-      <input type="text" value="${esc(v?.italic)}" data-key="italic" placeholder="PublicSans-Italic">
-      <button class="icon-btn" data-action="rm-weight" title="Supprimer">×</button>
-    </div>`).join('');
+    .map(([w, v], i) => {
+      const idN = fieldId(`typo-weight-${i}-normal`);
+      const idI = fieldId(`typo-weight-${i}-italic`);
+      const idW = fieldId(`typo-weight-${i}-weight`);
+      return `<div class="list-row" data-weight="${esc(w)}">
+        <input type="number" id="${esc(idW)}" name="${esc(idW)}" value="${esc(w)}" data-key="weight" min="100" max="900" step="100" style="max-width: 70px" title="Poids CSS (100, 200, … 900)">
+        <input type="text" id="${esc(idN)}" name="${esc(idN)}" value="${esc(v?.normal)}" data-key="normal" placeholder="PublicSans-Regular" title="Fichier normal">
+        <input type="text" id="${esc(idI)}" name="${esc(idI)}" value="${esc(v?.italic)}" data-key="italic" placeholder="PublicSans-Italic" title="Fichier italic">
+        <button class="icon-btn" data-action="rm-weight" title="Supprimer">×</button>
+      </div>`;
+    }).join('');
   return $section('Typographie', `
     <h3>Primary</h3>
-    ${$field('css-name', `<input type="text" data-path="typography.primary.css-name" value="${esc(p['css-name'])}">`)}
-    ${$field('files-source', `<input type="text" data-path="typography.primary.files-source" value="${esc(p['files-source'])}">`)}
-    <div class="note">Format weight = poids → fichier normal / fichier italic</div>
+    ${$field('css-name', $input({ id: idCss, path: 'typography.primary.css-name', value: p['css-name'], placeholder: 'Marianne' }), idCss, 'nom CSS de la fonte (gardé pour la compat var(--font-family))')}
+    ${$field('files-source', $input({ id: idSrc, path: 'typography.primary.files-source', value: p['files-source'], placeholder: './assets/fonts/' }), idSrc, 'chemin vers les fichiers .woff/.woff2')}
+    <div class="note">Poids → fichier normal / fichier italic (sans extension)</div>
     ${weights}
     <h3>Alt</h3>
-    ${$field('alt', `<select data-path="typography.alt"><option value="keep" ${state.typography?.alt === 'keep' ? 'selected' : ''}>keep (Spectral)</option></select>`)}
+    ${$field('alt', `<select id="${esc(idAlt)}" name="${esc(idAlt)}" data-path="typography.alt"><option value="keep" ${state.typography?.alt === 'keep' ? 'selected' : ''}>keep (Spectral)</option></select>`, idAlt, 'pour l’instant : keep uniquement')}
   `);
 }
 
@@ -115,21 +147,29 @@ function renderColors() {
   const families = Object.entries(state.colors ?? {});
   const blocks = families.map(([family, cfg]) => {
     const anchorHex = cfg.anchor?.hex ?? '#000000';
+    const idKey = fieldId(`color-${family}-key`);
+    const idRen = fieldId(`color-${family}-rename`);
+    const idCol = fieldId(`color-${family}-color`);
+    const idHex = fieldId(`color-${family}-hex`);
     const recal = Object.entries(cfg['recalibrate-grade'] ?? {})
-      .map(([from, to]) => `<div class="list-row" data-recal-from="${esc(from)}">
-        <input type="text" value="${esc(from)}" data-key="from" placeholder="main-525">
-        <span>→</span>
-        <input type="text" value="${esc(to)}" data-key="to" placeholder="main-444">
-        <button class="icon-btn" data-action="rm-recal" title="Supprimer">×</button>
-      </div>`).join('');
+      .map(([from, to], i) => {
+        const idF = fieldId(`color-${family}-recal-${i}-from`);
+        const idT = fieldId(`color-${family}-recal-${i}-to`);
+        return `<div class="list-row" data-recal-from="${esc(from)}">
+          <input type="text" id="${esc(idF)}" name="${esc(idF)}" value="${esc(from)}" data-key="from" placeholder="main-525" title="Grade DSFR original">
+          <span aria-hidden="true">→</span>
+          <input type="text" id="${esc(idT)}" name="${esc(idT)}" value="${esc(to)}" data-key="to" placeholder="main-444" title="Nouveau nom de grade">
+          <button class="icon-btn" data-action="rm-recal" title="Supprimer">×</button>
+        </div>`;
+      }).join('');
     return `<div data-family="${esc(family)}" class="family">
       <h3>Famille</h3>
-      ${$field('Nom DSFR (clé)', `<input type="text" value="${esc(family)}" data-key="family-key">`)}
-      ${$field('Rename (libre)', `<input type="text" value="${esc(cfg.rename)}" data-key="rename" placeholder="blue-ate">`)}
+      ${$field('Nom DSFR (clé)', `<input type="text" id="${esc(idKey)}" name="${esc(idKey)}" value="${esc(family)}" data-key="family-key">`, idKey, 'identifiant dans le mapping (ex: blue-france)')}
+      ${$field('Rename (libre)', `<input type="text" id="${esc(idRen)}" name="${esc(idRen)}" value="${esc(cfg.rename)}" data-key="rename" placeholder="blue-ate">`, idRen, 'utilisé par le post-process sed')}
       <div class="field field--color">
-        <label>Anchor</label>
-        <input type="color" value="${esc(anchorHex.toLowerCase())}" data-key="anchor-color">
-        <input type="text" class="hex" value="${esc(anchorHex)}" data-key="anchor-hex" placeholder="#4950FB">
+        <label for="${esc(idHex)}">Anchor</label>
+        <input type="color" id="${esc(idCol)}" name="${esc(idCol)}" value="${esc(anchorHex.toLowerCase())}" data-key="anchor-color">
+        <input type="text" id="${esc(idHex)}" name="${esc(idHex)}" class="hex" value="${esc(anchorHex)}" data-key="anchor-hex" placeholder="#4950FB" pattern="^#?[0-9a-fA-F]{6}$">
       </div>
       <h3>Recalibrate-grade</h3>
       ${recal}
@@ -140,20 +180,36 @@ function renderColors() {
   return $section('Couleurs', blocks);
 }
 
+// border-radius values in the mapping are stored as full CSS strings
+// ("0.75rem"). The UI shows just the rem number; conversion happens in the
+// input handler (we always wrap the user-typed number with "rem" before
+// storing).
+const remOf = (v) => {
+  if (v == null) return '';
+  const m = String(v).trim().match(/^(-?\d+(?:\.\d+)?)\s*rem$/i);
+  return m ? m[1] : '';
+};
+
 function renderRadius() {
-  const targets = (state['border-radius']?.targets ?? []).map((t, i) => `
+  const idBase = fieldId('radius-base');
+  const targets = (state['border-radius']?.targets ?? []).map((t, i) => {
+    const idSel = fieldId(`radius-target-${i}-selector`);
+    const idVal = fieldId(`radius-target-${i}-value`);
+    const idOvf = fieldId(`radius-target-${i}-overflow`);
+    return `
     <div class="list-row" data-target-idx="${i}">
-      <input type="text" value="${esc(t.selector)}" data-key="selector" placeholder=".fr-card">
-      <input type="text" value="${esc(t.value)}" data-key="value" placeholder="0.75rem" style="max-width: 90px">
-      <label class="toggle" style="margin: 0; flex: 0 0 auto">
-        <input type="checkbox" data-key="overflow" ${t.overflow ? 'checked' : ''}>
+      <input type="text" id="${esc(idSel)}" name="${esc(idSel)}" value="${esc(t.selector)}" data-key="selector" placeholder=".fr-card" title="Sélecteur CSS">
+      <input type="number" id="${esc(idVal)}" name="${esc(idVal)}" value="${esc(remOf(t.value))}" data-key="value" placeholder="0.75" step="0.125" min="0" max="4" style="max-width: 80px" title="Valeur en rem">
+      <label class="toggle" style="margin: 0; flex: 0 0 auto" for="${esc(idOvf)}">
+        <input type="checkbox" id="${esc(idOvf)}" name="${esc(idOvf)}" data-key="overflow" ${t.overflow ? 'checked' : ''}>
         <span>overflow</span>
       </label>
       <button class="icon-btn" data-action="rm-target" title="Supprimer">×</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   return $section('Border-radius', `
-    ${$field('Base', `<input type="text" data-path="border-radius.base" value="${esc(state['border-radius']?.base)}" placeholder="0.75rem">`)}
-    <h3>Targets</h3>
+    ${$field('Base', `<input type="number" id="${esc(idBase)}" name="${esc(idBase)}" value="${esc(remOf(state['border-radius']?.base))}" data-path="border-radius.base" data-rem placeholder="0.75" step="0.125" min="0" max="4">`, idBase, 'valeur en rem (sans suffixe)')}
+    <h3>Targets <small style="font-weight: 400; color: #888">(values en rem)</small></h3>
     ${targets}
     <button class="add-btn" data-action="add-target">+ target</button>
   `);
@@ -161,9 +217,10 @@ function renderRadius() {
 
 function renderShadows() {
   const sc = state.elevation?.['shadow-color'] ?? {};
+  const idL = fieldId('shadow-light'), idD = fieldId('shadow-dark');
   return $section('Elevation (shadows)', `
-    ${$field('Light shadow-color', `<input type="text" data-path="elevation.shadow-color.light" value="${esc(sc.light)}" placeholder="rgba(0, 0, 0, 0.16)">`)}
-    ${$field('Dark shadow-color',  `<input type="text" data-path="elevation.shadow-color.dark"  value="${esc(sc.dark)}"  placeholder="rgba(0, 0, 0, 0.32)">`)}
+    ${$field('Light shadow-color', $input({ id: idL, path: 'elevation.shadow-color.light', value: sc.light, placeholder: 'rgba(0, 0, 0, 0.16)' }), idL, 'CSS color : rgba / hex / hsl')}
+    ${$field('Dark shadow-color',  $input({ id: idD, path: 'elevation.shadow-color.dark',  value: sc.dark,  placeholder: 'rgba(0, 0, 0, 0.32)' }), idD, 'mode dark / data-fr-theme=dark')}
   `);
 }
 
@@ -171,23 +228,29 @@ function renderComponents() {
   const removed = new Set(state.components?.remove ?? []);
   const known = ['header', 'footer', 'consent', 'breadcrumb', 'navigation', 'translate'];
   const all = Array.from(new Set([...known, ...removed]));
-  const items = all.map(c => `<label class="toggle">
-    <input type="checkbox" data-component="${esc(c)}" ${removed.has(c) ? 'checked' : ''}>
-    <span>${esc(c)}</span>
-  </label>`).join('');
+  const items = all.map(c => {
+    const id = fieldId(`comp-${c}`);
+    return `<label class="toggle" for="${esc(id)}">
+      <input type="checkbox" id="${esc(id)}" name="${esc(id)}" data-component="${esc(c)}" ${removed.has(c) ? 'checked' : ''}>
+      <span>${esc(c)}</span>
+    </label>`;
+  }).join('');
   return $section('Composants à exclure', `<div class="checkboxes">${items}</div>`, { cliOnly: true });
 }
 
 function renderPostProcess() {
   const pp = state['post-process']?.rename ?? {};
   const pc = state['post-css'] ?? {};
+  const t = (id, path, checked, label) => {
+    return `<label class="toggle" for="${esc(id)}"><input type="checkbox" id="${esc(id)}" name="${esc(id)}" data-path="${esc(path)}" ${checked ? 'checked' : ''}> <span>${esc(label)}</span></label>`;
+  };
   return $section('Post-process', `
-    <h3>Rename</h3>
-    <label class="toggle"><input type="checkbox" data-path="post-process.rename.enabled" ${pp.enabled ? 'checked' : ''}> <span>enabled</span></label>
-    <label class="toggle"><input type="checkbox" data-path="post-process.rename.safety-check" ${pp['safety-check'] ? 'checked' : ''}> <span>safety-check</span></label>
+    <h3>Rename CSS final (sed)</h3>
+    ${t(fieldId('pp-rename-enabled'), 'post-process.rename.enabled', pp.enabled, 'enabled')}
+    ${t(fieldId('pp-rename-safety'),  'post-process.rename.safety-check', pp['safety-check'], 'safety-check (refuse les renames ambigus)')}
     <h3>PostCSS</h3>
-    <label class="toggle"><input type="checkbox" data-path="post-css.enabled" ${pc.enabled !== false ? 'checked' : ''}> <span>enabled (mqpacker + dedup + banner)</span></label>
-    <label class="toggle"><input type="checkbox" data-path="post-css.banner" ${pc.banner !== false ? 'checked' : ''}> <span>banner ADEME</span></label>
+    ${t(fieldId('pc-enabled'), 'post-css.enabled', pc.enabled !== false, 'enabled (mqpacker + dedup)')}
+    ${t(fieldId('pc-banner'),  'post-css.banner',  pc.banner !== false,  'banner ADEME en tête du fichier')}
   `, { cliOnly: true });
 }
 
@@ -216,7 +279,9 @@ function attachHandlers() {
   for (const el of document.querySelectorAll('[data-path]')) {
     const path = el.dataset.path;
     el.addEventListener('input', () => {
-      const v = el.type === 'checkbox' ? el.checked : el.value;
+      let v = el.type === 'checkbox' ? el.checked : el.value;
+      // data-rem: wrap a numeric input value into "<n>rem" before storing.
+      if (el.dataset.rem != null && typeof v === 'string' && v !== '') v = `${v}rem`;
       setPath(state, path, v);
       onStateChanged();
     });
@@ -270,7 +335,9 @@ function attachHandlers() {
       state['border-radius'].targets[idx].selector = e.target.value; onStateChanged();
     });
     row.querySelector('[data-key="value"]').addEventListener('input', e => {
-      state['border-radius'].targets[idx].value = e.target.value; onStateChanged();
+      const v = e.target.value;
+      state['border-radius'].targets[idx].value = v === '' ? '' : `${v}rem`;
+      onStateChanged();
     });
     row.querySelector('[data-key="overflow"]').addEventListener('change', e => {
       if (e.target.checked) state['border-radius'].targets[idx].overflow = true;
@@ -498,8 +565,39 @@ function setPreviewMode(mode) {
 }
 
 function attachPreviewToggle() {
-  for (const btn of document.querySelectorAll('.preview__bar button')) {
+  for (const btn of document.querySelectorAll('.preview__bar [data-mode]')) {
     btn.addEventListener('click', () => setPreviewMode(btn.dataset.mode));
+  }
+  for (const btn of document.querySelectorAll('.preview__bar [data-theme]')) {
+    btn.addEventListener('click', () => setPreviewTheme(btn.dataset.theme));
+  }
+}
+
+// Preview theme: 'auto' (no data-fr-theme attribute, lets prefers-color-scheme
+// kick in), 'light', or 'dark'. Applied both to the iframe (for example /
+// gallery modes) and to the palette-view container (so the palette section
+// itself flips its swatches' visible context).
+let previewTheme = 'auto';
+function setPreviewTheme(theme) {
+  previewTheme = theme;
+  for (const btn of document.querySelectorAll('.preview__bar [data-theme]')) {
+    const active = btn.dataset.theme === theme;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', String(active));
+  }
+  applyPreviewTheme();
+}
+function applyPreviewTheme() {
+  const iframe = document.getElementById('preview-frame');
+  const doc = iframe?.contentDocument;
+  if (doc) {
+    if (previewTheme === 'auto') doc.documentElement.removeAttribute('data-fr-theme');
+    else doc.documentElement.setAttribute('data-fr-theme', previewTheme);
+  }
+  const view = document.getElementById('palette-view');
+  if (view) {
+    if (previewTheme === 'auto') view.removeAttribute('data-fr-theme');
+    else view.setAttribute('data-fr-theme', previewTheme);
   }
 }
 
@@ -647,7 +745,10 @@ function attachTopbar() {
 // =============================================================================
 
 const iframe = document.getElementById('preview-frame');
-iframe.addEventListener('load', () => applyPreview());
+iframe.addEventListener('load', () => {
+  applyPreview();
+  applyPreviewTheme();
+});
 
 renderAll();
 attachYamlHandler();
