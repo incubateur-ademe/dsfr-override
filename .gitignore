@@ -6,5 +6,8 @@ dist/
 .cache/
 .playwright-mcp/
 
+# Bundle prod produit par `pnpm build:ui` (déployable, pas tracké)
+builder-ui/dist/
+
 alert-info*.png
 *.tmp.png

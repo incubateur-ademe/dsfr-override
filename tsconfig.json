@@ -1,0 +1,21 @@
+{
+  "extends": ["@tsconfig/strictest/tsconfig.json", "@tsconfig/node22/tsconfig.json"],
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM"],
+    "types": ["node"],
+    "moduleResolution": "NodeNext",
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+
+    "paths": {
+      "ademe-lch": ["./builder/lch.ts"],
+      "ademe-palette": ["./builder/generate/palette.ts"],
+      "ademe-profile": ["./builder/generate/profile-lch.ts"],
+      "hljs/core": ["./builder-ui/types/hljs.d.ts"],
+      "hljs/yaml": ["./builder-ui/types/hljs.d.ts"]
+    }
+  },
+  "include": ["builder/**/*.ts", "builder-ui/**/*.ts", "builder-ui/types/**/*.d.ts", "storybook/.storybook/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "dist", ".tmp", "dsfr", "builder-ui/dist"]
+}

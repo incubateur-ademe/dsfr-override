@@ -8,15 +8,18 @@
     "node": ">=20.19.0"
   },
   "bin": {
-    "ademe-ds": "./builder/index.js"
+    "ademe-ds": "./builder/index.ts"
   },
   "scripts": {
-    "build": "node builder/index.js build",
-    "generate": "node builder/index.js generate",
-    "validate": "node builder/index.js validate",
-    "baseline": "node builder/index.js baseline --update",
-    "upgrade": "node builder/index.js upgrade",
-    "test": "node --test 'builder/**/*.test.js'",
+    "build": "tsx builder/index.ts build",
+    "generate": "tsx builder/index.ts generate",
+    "validate": "tsx builder/index.ts validate",
+    "baseline": "tsx builder/index.ts baseline --update",
+    "upgrade": "tsx builder/index.ts upgrade",
+    "serve": "tsx builder/serve.ts",
+    "build:ui": "tsx scripts/build-ui.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test 'builder/**/*.test.ts'",
     "storybook": "pnpm build && pnpm --filter dsfr-override-storybook storybook",
     "build-storybook": "pnpm build && pnpm --filter dsfr-override-storybook build-storybook"
   },
@@ -32,13 +35,19 @@
     "sass": "^1.99.0"
   },
   "devDependencies": {
+    "@tsconfig/node22": "^22.0.5",
+    "@tsconfig/strictest": "^2.0.8",
+    "@types/node": "^25.6.2",
     "cssnano": "^8.0.0",
     "ejs4b": "^3.1.63",
+    "esbuild": "^0.28.0",
     "lucide-static": "^1.14.0",
     "mqpacker": "^7.0.0",
     "postcss": "8.4.32",
     "postcss-combine-duplicated-selectors": "^10.0.3",
     "postcss-discard-duplicates": "^8.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
     "yaml": "^2.5.0"
   },
   "packageManager": "pnpm@11.0.8+sha512.4c4097e1dd2d42372c4e7fa5a791ff28fc75a484c7ac192e64b1df0fdef17594ba982f9b4fed9adfb3c757846f565b799b2763fb3733d1de1bcb82cf46684912"
