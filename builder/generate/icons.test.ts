@@ -1,15 +1,17 @@
 // Couvre la pipeline icônes : rsync depuis le submodule, overrides Lucide 1-1,
 // adds (avec leurs trois formes YAML) et la génération SCSS associée. Utilise
-// le checkout réel du submodule — REAL_ROOT pointe vers la racine projet.
+// le checkout réel du submodule — REAL_ROOT pointe vers la racine projet,
+// résolue depuis ce fichier (portable CI / local).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { applyIconMapping, generateIconAddsScss } from './icons.js';
 
-const REAL_ROOT = '/Users/lsagetlethias/source/ADEME/dsfr-override';
+const REAL_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 // Sans overrides ni adds, `applyIconMapping` doit recopier l'intégralité de
 // l'arbre DSFR sans toucher aux fichiers (aucun marqueur Lucide).
