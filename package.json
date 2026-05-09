@@ -2,6 +2,7 @@
   "name": "dsfr-override",
   "version": "0.1.0",
   "description": "ADEME fork of DSFR — override-based builder (Phase 2)",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "engines": {
@@ -29,7 +30,8 @@
     "builder/",
     "assets/",
     "mapping.yml.example",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "dependencies": {
     "@gouvfr/dsfr": "1.14.4",

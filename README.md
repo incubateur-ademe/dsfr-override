@@ -61,6 +61,10 @@ Sortie dans `dist/` :
 
 Un fork direct (= patcher la source DSFR) crée un coût d'upgrade énorme : à chaque release upstream il faut rebaser les modifs. Avec l'approche override, le DSFR reste intact et nos modifs sont des fichiers SCSS appended au build. Aucun rebase.
 
+## Licence
+
+[MIT](./LICENSE) — © ADEME and contributors. Le projet dérive du DSFR (lui-même MIT). Voir le fichier `LICENSE` pour les notes sur les assets tiers expédiés dans `dist/` (typographies SIL OFL, icônes Lucide ISC) et les éléments expressément exclus du build (Marianne, branding État).
+
 ## Documentation
 
 - `CLAUDE.md` — contexte projet pour assistant IA
