@@ -13,7 +13,17 @@ import type { CompileResult } from '../types.js';
  */
 export function writeResults(results: CompileResult[]): void {
   for (const r of results) {
-    writeFileSync(r.outFile, r.css);
+    let css = r.css;
+    if (r.sourceMap) {
+      // Sass renvoie le source-map en objet JSON ; on l'écrit en `.css.map`
+      // et on rajoute le commentaire `sourceMappingURL` à la fin du CSS pour
+      // que les devtools le retrouvent automatiquement.
+      writeFileSync(`${r.outFile}.map`, r.sourceMap);
+      const mapName = r.outFile.split('/').pop() + '.map';
+      const trailing = css.endsWith('\n') ? '' : '\n';
+      css = `${css}${trailing}/*# sourceMappingURL=${mapName} */\n`;
+    }
+    writeFileSync(r.outFile, css);
     if (r.minCss != null) {
       if (!r.outFile.endsWith('.css')) {
         throw new Error(`writeResults: cannot derive .min.css path from ${r.outFile} (expected .css extension)`);

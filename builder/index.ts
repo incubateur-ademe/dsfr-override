@@ -12,9 +12,11 @@ import { prepare } from './build/prepare.js';
 import { restore } from './build/restore.js';
 import { writeResults } from './build/write-results.js';
 import { generateOverrides } from './generate/index.js';
+import { computeFamilyPalette } from './generate/palette.js';
+import { contrastRatio, hexToLch } from './lch.js';
 import { validateAll } from './validate/index.js';
 import { updateBaseline } from './validate/upstream-drift.js';
-import type { CompileResult, Mapping } from './types.js';
+import type { CompileResult, Mapping, PaletteEntry } from './types.js';
 
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -39,6 +41,7 @@ ${c('bold', 'Usage:')}
 ${c('bold', 'Commands:')}
   ${c('cyan', 'build')}             Generate overrides + compile sass + post-process → dist/
   ${c('cyan', 'generate')}          Generate overrides only (no sass)
+  ${c('cyan', 'palette <name>')}    Print the LCh palette computed for a family from mapping.yml
   ${c('cyan', 'validate')}          Run mapping / drift / WCAG validators
   ${c('cyan', 'baseline --update')} Snapshot DSFR file hashes into .ademe-baseline.json
   ${c('cyan', 'upgrade')}           git submodule update --remote + validate
@@ -46,6 +49,7 @@ ${c('bold', 'Commands:')}
 ${c('bold', 'Options:')}
   --mapping <path>   Path to mapping file (default: mapping.yml)
   --minify           Also emit dist/*.min.css (cssnano)
+  --sourcemap        Emit dist/*.css.map and link via sourceMappingURL
   --strict           Treat warnings as errors
   -h, --help         Show this help
 `;
@@ -55,11 +59,12 @@ interface CliOpts {
   mapping: string;
   update: boolean;
   minify: boolean;
+  sourcemap: boolean;
   help: boolean;
 }
 
 function parseArgs(args: string[]): { opts: CliOpts; rest: string[] } {
-  const opts: CliOpts = { strict: false, mapping: 'mapping.yml', update: false, minify: false, help: false };
+  const opts: CliOpts = { strict: false, mapping: 'mapping.yml', update: false, minify: false, sourcemap: false, help: false };
   const rest: string[] = [];
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
@@ -67,6 +72,7 @@ function parseArgs(args: string[]): { opts: CliOpts; rest: string[] } {
     else if (a === '--strict') opts.strict = true;
     else if (a === '--update') opts.update = true;
     else if (a === '--minify') opts.minify = true;
+    else if (a === '--sourcemap') opts.sourcemap = true;
     else if (a === '--mapping') {
       const next = args[++i];
       if (next !== undefined) opts.mapping = next;
@@ -90,7 +96,7 @@ async function runBuild(opts: CliOpts): Promise<void> {
   let results: CompileResult[] | undefined;
   let buildErr: unknown;
   try {
-    results = await compile(input);
+    results = await compile(input, { sourceMap: opts.sourcemap });
   } catch (e) {
     buildErr = e;
   }
@@ -193,6 +199,57 @@ function runBaseline(opts: CliOpts): number {
   return 0;
 }
 
+/**
+ * Préview standalone d'une palette LCh sans toucher à `dist/`. Lit `mapping.yml`,
+ * recalcule la palette de la famille demandée et l'imprime sur stdout.
+ *
+ * Format de sortie : ligne par grade `<name> <hex> L=NN.N C=CC.C h=HHH°` +
+ * un mini-rapport WCAG du grade `main` contre `#ffffff` et `#1e1e1e`.
+ */
+function runPalette(family: string): number {
+  const mappingPath = resolve(PROJECT_ROOT, 'mapping.yml');
+  if (!existsSync(mappingPath)) {
+    logErr('palette: mapping.yml introuvable');
+    return 1;
+  }
+  const mapping = parseYaml(readFileSync(mappingPath, 'utf8')) as Mapping | null;
+  const cfg = mapping?.colors?.[family];
+  if (!cfg) {
+    logErr(`palette: famille « ${family} » absente de mapping.colors`);
+    return 1;
+  }
+  if (!cfg.anchor?.hex) {
+    logErr(`palette: famille « ${family} » sans anchor.hex`);
+    return 1;
+  }
+  // Avec `exactOptionalPropertyTypes`, on ne propage que les clés réellement
+  // définies — pas de `undefined` à la place d'une absence.
+  const paletteCfg: Parameters<typeof computeFamilyPalette>[0] = { anchor: cfg.anchor.hex };
+  const recal = cfg['recalibrate-grade'] ?? cfg.recalibrate;
+  if (recal) paletteCfg.recalibrate = recal;
+  const adds = cfg['add-grades'] ?? cfg.addGrades;
+  if (adds) paletteCfg.addGrades = adds;
+  const remap = cfg['semantic-remap'] ?? cfg.semanticRemap;
+  if (remap) paletteCfg.semanticRemap = remap;
+  const palette: PaletteEntry[] = computeFamilyPalette(paletteCfg);
+  const renamed = cfg.rename ?? family;
+  stdout.write(`${c('bold', renamed)} (anchor ${c('cyan', cfg.anchor.hex)})\n`);
+  for (const entry of palette) {
+    const hex = entry.values[0] ?? '#000000';
+    const [L, C, h] = hexToLch(hex);
+    stdout.write(`  ${entry.name.padEnd(16)} ${hex}  L=${L.toFixed(1).padStart(5)} C=${C.toFixed(1).padStart(5)} h=${h.toFixed(0).padStart(3)}°\n`);
+  }
+  const main = palette.find(p => p.name.startsWith('main-'));
+  if (main) {
+    const hex = main.values[0] ?? '#000000';
+    const onWhite = contrastRatio(hex, '#ffffff');
+    const onDark = contrastRatio(hex, '#1e1e1e');
+    stdout.write(`\n  WCAG main vs #ffffff : ${onWhite.toFixed(2)}\n`);
+    stdout.write(`  WCAG main vs #1e1e1e : ${onDark.toFixed(2)}\n`);
+  }
+  return 0;
+}
+
 function runUpgrade(opts: CliOpts): number {
   logInfo('git submodule update --remote dsfr');
   execFileSync('git', ['submodule', 'update', '--remote', 'dsfr'], {
@@ -218,6 +275,14 @@ async function main(): Promise<void> {
       case 'validate': exit(runValidate(opts));
       case 'baseline': exit(runBaseline(opts));
       case 'upgrade':  exit(runUpgrade(opts));
+      case 'palette': {
+        const familyArg = args.find(a => !a.startsWith('-'));
+        if (!familyArg) {
+          logErr('palette: passe le nom d\'une famille (ex: ademe-ds palette blue-france)');
+          exit(1);
+        }
+        exit(runPalette(familyArg));
+      }
       default:
         logErr(`unknown command: ${command}`);
         stdout.write(HELP);

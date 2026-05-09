@@ -1,18 +1,14 @@
-# Phase 1 — POC Token Swap : Rapport et Architecture
+# Architecture
 
-> Statut : **Phase 1 complète**, palette migrée vers approche LCh (CIELAB) + renommage des préfixes appliqué.
->
-> Versions du POC :
-> - v1 (HSL piecewise, noms `blue-france`/`red-marianne` conservés) — historique, abandonnée
-> - **v2 (LCh CIELAB, renommage `blue-ate`/`red-laura`) — version actuelle**
+Spec de référence du builder dsfr-override. Décrit le pipeline de transformation, le schema `mapping.yml`, le profil LCh utilisé pour la palette, et les contraintes (RGAA AA, légales).
 
-## Objectif
+## Cible
 
-Valider qu'on peut produire un design system visuellement et nominalement distinct du DSFR en remplaçant les tokens directement dans le repo forké, sans casser la mécanique interne, **tout en garantissant la conformité RGAA AA**.
+Produire un design system visuellement et nominalement distinct du DSFR à partir d'un `mapping.yml`, sans casser la mécanique interne du DSFR upstream, **tout en garantissant la conformité RGAA AA**.
 
 ---
 
-## Modifications réalisées
+## Mécanismes de transformation
 
 ### 1. Typographie
 
@@ -178,7 +174,7 @@ Le DSFR n'a pas de token centralisé pour le border-radius. Chaque composant dé
 | **Card** | `component/card/style/module/_default.scss` | aucun | `3v` + `overflow: hidden` |
 | **Alert** | `component/alert/style/_module.scss` | aucun | `3v` |
 
-**Modifications POC complémentaires :**
+**Modifications complémentaires :**
 
 | Composant | Fichier | Avant | Après |
 |-----------|---------|-------|-------|
@@ -211,7 +207,7 @@ Importé via 1 ligne ajoutée à `_module.scss` :
 @import 'module/radius-fix';
 ```
 
-Le `box-shadow: inset` respecte naturellement `border-radius`, ce qui produit une bordure continue sur les coins arrondis. Ce pattern (override SCSS isolé + import unique) est le modèle à reproduire pour le builder Phase 2 via le mécanisme `overrides/`.
+Le `box-shadow: inset` respecte naturellement `border-radius`, ce qui produit une bordure continue sur les coins arrondis. Ce pattern (override SCSS isolé + import unique) est repris dans le builder via le mécanisme `manual-overrides`.
 
 **Non modifiés (intentionnel) :**
 - Radio (`50%`, `6v`, `2v`) — géométrie sémantique
@@ -257,16 +253,16 @@ Page HTML qui charge `dsfr.css` + `utility/utility.css` et présente :
 - Palettes Blue ATE et Red Laura (11 grades chacune)
 - Tokens sémantiques (action-high, alt, contrast)
 - Composants : boutons, cards, formulaires, badges, alertes, tags, liens
-- Tableau récapitulatif des modifications POC
+- Tableau récapitulatif des modifications
 - Vérification contraste RGAA AA
 
-Validation visuelle OK via Playwright (screenshot `poc-ademe-v2-fullpage.png`).
+Validation visuelle disponible via la page témoin (`example/index.html`) et le storybook (`pnpm storybook`).
 
 ---
 
-## Mapping complet POC v2
+## Schéma `mapping.yml`
 
-Spec d'entrée pour le builder Phase 2.
+Spec d'entrée du builder.
 
 ```yaml
 version: 1
@@ -351,7 +347,7 @@ components:
 
 ---
 
-## Phase 2 — Builder
+## Builder
 
 ### Vision
 
@@ -835,9 +831,9 @@ L'effort est globalement plus faible que dans la version source-modification par
 
 ---
 
-## Annexe — Coordonnées LCh des anchors POC
+## Annexe — Coordonnées LCh des anchors ADEME
 
-Si la palette doit être régénérée (variations futures, ajustement chromatique), partir de ces coordonnées + le profil §4 :
+Coordonnées de référence du `mapping.yml.example` ; partir de ces valeurs si la palette doit être régénérée pour une variation future :
 
 ```
 Blue ATE:   #4950FB → L*=44.40  C*=99.70  h°=301.00

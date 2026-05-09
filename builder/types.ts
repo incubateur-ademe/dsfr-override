@@ -256,12 +256,14 @@ export interface IconAddEntryOutput {
 /**
  * Résultat d'une compilation Sass : CSS attendu sur disque, et
  * éventuellement variante minifiée. `outFile` est un chemin absolu déjà résolu.
+ * `sourceMap` est le JSON brut du source-map sass quand `--sourcemap` est actif.
  */
 export interface CompileResult {
   name: string;
   outFile: string;
   css: string;
   minCss?: string | null;
+  sourceMap?: string | null;
 }
 
 /** Compteurs et liste exposés par `applyIconMapping` pour le reporting et la génération SCSS aval. */

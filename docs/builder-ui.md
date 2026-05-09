@@ -4,12 +4,23 @@ Mini-app web pour éditer interactivement `mapping.yml` avec preview live. Sorti
 
 ## Lancer
 
+### Mode dev
+
 ```bash
-node builder/serve.js                              # PORT=8080 par défaut
+pnpm serve                                         # PORT=8080 par défaut
 # → http://localhost:8080/builder-ui/index.html
 ```
 
-Pas de step de build : HTML/CSS/JS natif, le navigateur charge directement les fichiers via `<script type="importmap">` qui pointe sur `node_modules/yaml/browser/`, sur `builder/lch.js` + `builder/generate/palette.js` réutilisés tels quels, et sur `highlight.js@11.11.1` via le CDN `esm.sh` (la version locale CJS-only ne s'importe pas en ESM dans le navigateur).
+Le serveur intercepte la requête `/builder-ui/main.js` et la sert via `esbuild` à la volée (bundle ESM + sourcemap inline). Le bundle inclut `yaml`, `builder/lch.ts`, `builder/generate/palette.ts`, `builder/generate/profile-lch.ts` ; seul `highlight.js@11.11.1` reste externe via `esm.sh` (la version locale est CJS-only). Le cache du bundle est invalidé sur le `mtime` des sources, donc l'édition est instantanée.
+
+### Mode prod (déployable)
+
+```bash
+pnpm build:ui
+# → builder-ui/dist/{main.js, index.html, style.css, gallery.html}
+```
+
+Bundle statique (`scripts/build-ui.ts`, esbuild) servi tel quel par n'importe quel hébergement statique. L'`importmap` du `index.html` ne porte plus que les deux références CDN ; le reste est inliné.
 
 ## Layout
 
@@ -89,7 +100,13 @@ Les utilitaires ont une UX de validation dédiée :
 
 ## Icônes & manual-overrides
 
-L'éditeur expose désormais les sections `icons` (overrides + add) et `manual-overrides` directement. Pas d'autocomplete Lucide pour rester light — les noms se tapent en clair, le builder CLI les résout depuis `node_modules/lucide-static/icons/`.
+L'éditeur expose les sections `icons` (overrides + add) et `manual-overrides` directement.
+
+Pour les icônes, deux APIs serveur alimentent l'expérience :
+
+- `/__api/icons/dsfr` → liste des `~1036` icônes du submodule (avec leur groupe), peuplée dans un `<datalist>` autocomplete.
+- `/__api/icons/lucide` → liste des `~1952` icônes Lucide.
+- `/__api/icons/{dsfr,lucide}/svg/<name>.svg` → résolution de chaque SVG, utilisée pour l'aperçu `<img>` 24×24 affiché à gauche (DSFR origin) et à droite (Lucide cible) de chaque ligne d'override. L'aperçu est mis à jour chirurgicalement à chaque frappe (pas de re-render global).
 
 ## Limites assumées
 
@@ -99,20 +116,22 @@ L'éditeur expose désormais les sections `icons` (overrides + add) et `manual-o
 
 ```
 builder-ui/
-├── package.json     # deps: yaml@2 + highlight.js@11 (browser CDN-only)
-├── index.html       # importmap pour yaml + lch + palette + hljs CDN
-├── gallery.html     # vue Galerie (composants DSFR exhaustifs)
-├── main.js          # state + render + sync + preview + postMessage
-└── style.css        # layout grid 3 colonnes, dark yaml pane, popup help
+├── package.json         # deps: yaml + highlight.js (browser CDN-only)
+├── index.html           # importmap pour hljs CDN ; main.js servi par esbuild en dev
+├── gallery.html         # vue Galerie (composants DSFR exhaustifs)
+├── main.ts              # state + render + sync + preview + postMessage
+├── types/hljs.d.ts      # stub minimal pour les imports CDN (hljs/core, hljs/yaml)
+└── style.css            # layout grid 3 colonnes, dark yaml pane, popup help
 ```
 
-`example/index.html` (à la racine du repo) est l'autre vue chargée en iframe ; il fonctionne aussi en standalone via `node builder/serve.js`.
+`example/index.html` (à la racine du repo) est l'autre vue chargée en iframe ; il fonctionne aussi en standalone via `pnpm serve`.
 
 ## Étendre
 
 Pour ajouter une nouvelle section dans l'UI :
 
-1. Ajouter une fonction `renderXxx()` qui retourne le HTML (toutes les valeurs interpolées passent par `esc()`).
-2. L'inclure dans le tableau de `renderAll()`.
-3. Ajouter les `addEventListener` dans `attachHandlers()`.
-4. Étendre `buildPreviewCss()` si la section a un effet visuel reflectible côté client.
+1. Étendre le type `Mapping` dans `builder/types.ts` avec la nouvelle clé.
+2. Ajouter une fonction `renderXxx(): string` qui retourne le HTML (toutes les valeurs interpolées passent par `esc()`).
+3. L'inclure dans le tableau de `renderAll()`.
+4. Ajouter les `addEventListener` dans `attachHandlers()`.
+5. Étendre `buildPreviewCss()` si la section a un effet visuel reflectible côté client.

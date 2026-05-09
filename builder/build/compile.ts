@@ -20,7 +20,8 @@ export async function compile(input: PrepareInput, opts: CompileOpts = {}): Prom
     results.push({
       name: target.name,
       outFile: join(input.distDir, target.outName),
-      css: r.css
+      css: r.css,
+      sourceMap: r.sourceMap ? JSON.stringify(r.sourceMap) : null
     });
   }
   return results;

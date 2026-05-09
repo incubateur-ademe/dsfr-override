@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.0.0"
   },
   "bin": {
     "ademe-ds": "./builder/index.ts"
@@ -16,6 +16,7 @@
     "validate": "tsx builder/index.ts validate",
     "baseline": "tsx builder/index.ts baseline --update",
     "upgrade": "tsx builder/index.ts upgrade",
+    "palette": "tsx builder/index.ts palette",
     "serve": "tsx builder/serve.ts",
     "build:ui": "tsx scripts/build-ui.ts",
     "typecheck": "tsc --noEmit",

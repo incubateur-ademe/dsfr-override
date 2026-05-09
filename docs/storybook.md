@@ -27,12 +27,15 @@ dsfr-override/
 └── storybook/                         ← workspace pnpm dédié
     ├── package.json                   (deps storybook isolées du builder)
     └── .storybook/
-        ├── main.js                    ← stories pioché dans dsfr/, staticDirs vers dist/
+        ├── main.ts                    ← stories pioché dans dsfr/, staticDirs vers dist/, lit mapping.yml
         ├── preview-head.html          ← <link> vers nos CSS + <script> JS DSFR vendor
-        ├── preview.js / preview.css   (themeDecorator data-fr-theme, copié verbatim)
-        ├── manager.js / dsfr-theme.js (UI Storybook, copié verbatim)
+        ├── preview.ts / preview.css   (themeDecorator data-fr-theme)
+        ├── manager.ts                 (UI Storybook init)
+        ├── dsfr-theme.ts              (theme piloté par mapping.yml via vite define)
         └── static/                    (logos light/dark)
 ```
+
+Le branding du Storybook (couleur primary / secondary / fonte du chrome) suit la palette du `mapping.yml` configuré : `main.ts` lit `mapping.yml` au boot, extrait `typography.primary['css-name']` et les anchors des deux premières familles, et injecte ces valeurs en globals via `viteFinal.define`. `dsfr-theme.ts` les consomme pour générer les variantes light + dark. Aucun branding ADEME-spécifique en dur — c'est un "DSFR override" qui adopte la palette courante.
 
 ## Comment notre CSS arrive dans les stories
 
