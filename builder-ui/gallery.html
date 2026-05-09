@@ -19,26 +19,8 @@
 <body>
   <header style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem">
     <h1 style="margin: 0">Galerie exhaustive — composants DSFR avec mapping ADEME</h1>
-    <fieldset class="fr-segmented fr-segmented--sm" aria-label="Thème" style="margin-left: auto">
-      <div class="fr-segmented__elements">
-        <div class="fr-segmented__element">
-          <input type="radio" id="g-theme-light" name="g-theme" value="light">
-          <label class="fr-label" for="g-theme-light">Light</label>
-        </div>
-        <div class="fr-segmented__element">
-          <input type="radio" id="g-theme-dark" name="g-theme" value="dark">
-          <label class="fr-label" for="g-theme-dark">Dark</label>
-        </div>
-      </div>
-    </fieldset>
   </header>
   <p class="fr-text--lead">Toutes les variantes courantes des composants DSFR. Chaque modification du builder-ui (palette, radius, ombres) est reflétée ici comme dans la page témoin.</p>
-
-  <script>
-    for (const r of document.querySelectorAll('input[name="g-theme"]')) {
-      r.addEventListener('change', () => document.documentElement.setAttribute('data-fr-theme', r.value));
-    }
-  </script>
 
   <section class="gal-section">
     <h2>Tags</h2>

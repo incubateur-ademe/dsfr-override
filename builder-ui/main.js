@@ -873,6 +873,7 @@ iframe.addEventListener('load', () => {
 });
 window.addEventListener('message', (e) => {
   if (e.data?.type === 'ademe-ready') pushPreviewState();
+  if (e.data?.type === 'ademe-theme' && e.data.value) setPreviewTheme(e.data.value);
 });
 
 // Help popup: event delegation on the document so we don't have to re-bind

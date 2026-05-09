@@ -359,7 +359,15 @@
         ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
         : value;
     for (const r of document.querySelectorAll('input[name="ademe-theme"]')) {
-      r.addEventListener('change', () => root.setAttribute('data-fr-theme', resolveTheme(r.value)));
+      r.addEventListener('change', () => {
+        root.setAttribute('data-fr-theme', resolveTheme(r.value));
+        // Bubble up to the builder-ui so its global theme switcher stays in
+        // sync. Programmatic radio.checked = true (used when the parent pushes
+        // a state) does NOT fire a change event, so this never loops.
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'ademe-theme', value: r.value }, '*');
+        }
+      });
     }
 
     // Builder-UI sync: when this page is hosted in the builder iframe, the
