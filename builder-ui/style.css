@@ -1,0 +1,127 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: flex; flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px; color: #161616; background: #f6f6f6;
+}
+
+.topbar {
+  display: flex; gap: 0.5rem; align-items: center;
+  padding: 0.5rem 1rem;
+  background: #161616; color: #f6f6f6;
+  border-bottom: 1px solid #333;
+}
+.topbar strong { font-size: 14px; }
+.topbar__spacer { flex: 1; }
+.topbar button {
+  background: #2a2a2a; color: #f6f6f6; border: 1px solid #444;
+  padding: 0.35rem 0.75rem; border-radius: 4px;
+  font: inherit; cursor: pointer;
+}
+.topbar button:hover { background: #3a3a3a; }
+.topbar .btn-primary { background: #4950fb; border-color: #4950fb; }
+.topbar .btn-primary:hover { background: #3a40d4; }
+
+.layout {
+  flex: 1; display: grid;
+  grid-template-columns: minmax(280px, 22%) 1fr minmax(280px, 22%);
+  min-height: 0;
+}
+
+.settings, .yaml { background: #fff; overflow-y: auto; }
+.settings { border-right: 1px solid #ddd; }
+.yaml     { border-left:  1px solid #ddd; display: flex; flex-direction: column; }
+
+.preview { background: #eee; display: flex; flex-direction: column; min-height: 0; }
+.preview iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+
+.section {
+  border-bottom: 1px solid #eee;
+  padding: 0.75rem 1rem;
+}
+.section h2 {
+  font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin: 0 0 0.5rem; color: #333;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.section h2 .badge {
+  font-size: 10px; font-weight: 500; padding: 1px 5px;
+  background: #fff5b4; color: #6c5500; border-radius: 3px;
+  text-transform: none; letter-spacing: 0;
+}
+.section h3 {
+  font-size: 12px; font-weight: 600; margin: 0.75rem 0 0.25rem;
+  color: #444;
+}
+
+.field { display: flex; flex-direction: column; gap: 0.2rem; margin-bottom: 0.5rem; }
+.field > label { font-size: 11px; color: #555; }
+.field input[type="text"], .field input[type="number"], .field select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #ccc; border-radius: 3px;
+  font: inherit;
+}
+.field input[type="color"] { width: 36px; height: 28px; padding: 0; border: 1px solid #ccc; border-radius: 3px; }
+
+.field--color { flex-direction: row; align-items: center; gap: 0.4rem; }
+.field--color label { flex: 1; }
+.field--color .hex { width: 78px; font-family: ui-monospace, monospace; font-size: 11px; }
+
+.list-row { display: flex; gap: 0.25rem; align-items: center; margin-bottom: 0.25rem; }
+.list-row input { flex: 1; min-width: 0; }
+.list-row button.icon-btn {
+  background: #f6f6f6; border: 1px solid #ccc; cursor: pointer;
+  width: 22px; height: 22px; padding: 0; border-radius: 3px;
+  font-size: 11px; line-height: 1;
+}
+.list-row button.icon-btn:hover { background: #eee; }
+
+button.add-btn {
+  background: transparent; color: #4950fb; border: 1px dashed #4950fb;
+  padding: 0.25rem 0.5rem; border-radius: 3px; cursor: pointer;
+  font: inherit; font-size: 11px;
+  margin-top: 0.25rem;
+}
+button.add-btn:hover { background: #f0eaff; }
+
+.toggle { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+.toggle input { margin: 0; }
+
+.checkboxes { display: flex; flex-direction: column; gap: 0.2rem; }
+
+/* YAML pane */
+.yaml__header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: #2a2a2a; color: #f6f6f6;
+  font-size: 11px; font-family: ui-monospace, monospace;
+}
+.yaml__status { font-size: 10px; }
+.yaml__status.ok    { color: #6abe6a; }
+.yaml__status.error { color: #ff7a7a; }
+#yaml-editor {
+  flex: 1; resize: none; border: 0;
+  padding: 0.75rem;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px; line-height: 1.5;
+  background: #1e1e1e; color: #d4d4d4;
+  outline: none;
+  tab-size: 2;
+}
+#yaml-editor.invalid { background: #2e1e1e; }
+
+.preview__bar {
+  display: flex; gap: 0.5rem; padding: 0.4rem 0.75rem;
+  background: #fafafa; border-bottom: 1px solid #ddd;
+  font-size: 11px; color: #555; align-items: center;
+}
+.preview__bar button {
+  background: #fff; border: 1px solid #ccc; cursor: pointer;
+  padding: 0.2rem 0.5rem; border-radius: 3px; font: inherit; font-size: 11px;
+}
+
+.note {
+  font-size: 10px; color: #888; font-style: italic; margin: 0.25rem 0 0.5rem;
+}

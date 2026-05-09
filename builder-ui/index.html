@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DSFR ADEME — builder UI</title>
+  <link rel="stylesheet" href="./style.css">
+
+  <script type="importmap">
+    {
+      "imports": {
+        "yaml": "/builder-ui/node_modules/yaml/browser/index.js",
+        "ademe-lch": "/builder/lch.js",
+        "ademe-palette": "/builder/generate/palette.js",
+        "ademe-profile": "/builder/generate/profile-lch.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <strong>DSFR ADEME — Builder UI</strong>
+    <span class="topbar__spacer"></span>
+    <button id="btn-load">Charger mapping.yml…</button>
+    <input type="file" id="file-input" accept=".yml,.yaml" hidden>
+    <button id="btn-reset">Reset défaut</button>
+    <button id="btn-export" class="btn-primary">Exporter mapping.yml</button>
+  </header>
+
+  <main class="layout">
+    <aside class="settings" aria-label="Réglages">
+      <!-- Sections injectées par main.js -->
+    </aside>
+
+    <section class="preview" aria-label="Aperçu">
+      <iframe id="preview-frame" src="/example/index.html" title="Aperçu"></iframe>
+    </section>
+
+    <aside class="yaml" aria-label="YAML brut">
+      <div class="yaml__header">
+        <span>mapping.yml</span>
+        <span id="yaml-status" class="yaml__status"></span>
+      </div>
+      <textarea id="yaml-editor" spellcheck="false"></textarea>
+    </aside>
+  </main>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

@@ -61,6 +61,8 @@ pnpm build --minify
 
 **Storybook** : 322 stories DSFR + 57 docs pages avec switcher light/dark et viewports. Stories pioché dans le submodule pristine (zéro copie). Voir `docs/storybook.md`.
 
+**Builder UI** (`http://localhost:8765/builder-ui/index.html`) : éditeur visuel du `mapping.yml`. Layout 3 colonnes (réglages | preview live | YAML brut), sync bidirectionnel UI ↔ YAML, palette LCh recalculée côté client en temps réel quand on bouge un anchor. Export du `mapping.yml` final, le build CLI reste un `pnpm build` après coup. Voir `docs/builder-ui.md`.
+
 ## Pourquoi pas un fork direct du DSFR ?
 
 Un fork direct (= patcher la source DSFR) crée un coût d'upgrade énorme : à chaque release upstream il faut rebaser les modifs. Avec l'approche override, le DSFR reste intact et nos modifs sont des fichiers SCSS appended au build. Aucun rebase.
@@ -75,4 +77,5 @@ La Phase 1 du projet (dans `../dsfr/`) a fait un fork direct pour valider la cib
 - `docs/icons.md` — pipeline d'icônes (rsync DSFR + Lucide overrides + adds)
 - `docs/storybook.md` — comment le storybook est câblé sur le submodule DSFR
 - `docs/example.md` — page témoin et serveur statique
+- `docs/builder-ui.md` — UI web pour éditer mapping.yml en live
 - `visual-references/` — captures de la cible visuelle à reproduire

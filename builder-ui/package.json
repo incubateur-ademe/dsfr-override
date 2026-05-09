@@ -1,0 +1,13 @@
+{
+  "name": "dsfr-override-builder-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Visual builder for the ADEME mapping.yml",
+  "scripts": {
+    "serve": "node ../builder/serve.js"
+  },
+  "dependencies": {
+    "yaml": "^2.5.0"
+  }
+}

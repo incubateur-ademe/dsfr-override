@@ -1,6 +1,7 @@
 packages:
   - .
   - storybook
+  - builder-ui
 allowBuilds:
   '@parcel/watcher': true
   esbuild: true
