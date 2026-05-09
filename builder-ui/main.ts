@@ -1147,9 +1147,12 @@ function applyAll(): void {
 type PreviewMode = 'example' | 'gallery' | 'palette';
 type PreviewTheme = 'auto' | 'light' | 'dark';
 
+// Paths relatifs au document `builder-ui/index.html` : indispensable pour
+// que le déploiement statique sur GitHub Pages (sous-chemin `/<repo>/`)
+// résolve correctement, et neutre côté dev où le serveur sert depuis la racine.
 const PREVIEW_SOURCES: Record<'example' | 'gallery', string> = {
-  example: '/example/index.html',
-  gallery: '/builder-ui/gallery.html'
+  example: '../example/index.html',
+  gallery: './gallery.html'
 };
 let previewMode: PreviewMode = 'example';
 

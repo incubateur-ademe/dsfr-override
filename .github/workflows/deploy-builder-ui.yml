@@ -1,0 +1,83 @@
+name: deploy-builder-ui
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'builder-ui/**'
+      - 'builder/**'
+      - 'mapping.yml*'
+      - 'overrides/**'
+      - 'scripts/build-ui.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/deploy-builder-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Une seule release Pages à la fois ; un nouveau push annule un déploiement
+# en cours pour que ce soit le dernier commit qui finisse en prod.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # `pnpm build` produit `dist/` (CSS DSFR-override, fonts, JS DSFR
+      # vanilla, icônes copiées). C'est ce que la page témoin et la galerie
+      # consomment quand elles tournent en prod.
+      - run: pnpm build
+
+      # `pnpm build:ui` produit le bundle prod du builder dans
+      # `builder-ui/dist/` (esbuild ESM, sourcemaps inline, deps inlinées
+      # sauf hljs CDN).
+      - run: pnpm build:ui
+
+      - name: Stage GitHub Pages site
+        run: |
+          mkdir -p _site/builder-ui _site/example _site/dist
+          cp -r builder-ui/dist/. _site/builder-ui/
+          cp -r example/. _site/example/
+          cp -r dist/. _site/dist/
+          # Redirection racine → /builder-ui/ (URL d'entrée par défaut).
+          cat > _site/index.html <<'HTMLEOF'
+          <!DOCTYPE html>
+          <meta charset="utf-8">
+          <meta http-equiv="refresh" content="0; url=./builder-ui/">
+          <title>dsfr-override builder UI</title>
+          <link rel="canonical" href="./builder-ui/">
+          <p>Redirection vers <a href="./builder-ui/">le builder UI</a>.</p>
+          HTMLEOF
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
