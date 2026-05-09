@@ -22,7 +22,7 @@
     "build:pages": "tsx scripts/build-pages.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test 'builder/**/*.test.ts'",
-    "storybook": "pnpm build && pnpm --filter dsfr-override-storybook storybook",
+    "storybook": "pnpm build && pnpm --filter dsfr-override-storybook storybook --no-open",
     "build-storybook": "pnpm build && pnpm --filter dsfr-override-storybook build-storybook"
   },
   "files": [

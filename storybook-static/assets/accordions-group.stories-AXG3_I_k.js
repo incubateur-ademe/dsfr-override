@@ -1,0 +1,4 @@
+import{a as s,d as p}from"./accordion-arg-types-D6Aoxrs9.js";import"./renderer-BO3bJSWJ.js";import"./_commonjsHelpers-Cpj98o6Y.js";const i={group:{control:"boolean",description:"Accordéons groupés (ferme le précédent à l’ouverture d'un autre)"}},r=o=>({id:`${s.id}-${o}`,label:`${s.label} ${o}`,content:`${s.content}`}),a={group:!0,accordions:[r(1),r(2),r(3),r(4)]},u=o=>({group:o.group===!0,accordions:a.accordions}),g=o=>p({accordionsGroup:u(o)}),G={id:"accordions-group",title:"DSFR/Component/Accordion/Accordions-Group",render:g,argTypes:i,args:a},c={tags:["autodocs"],args:{}};var n,e,t;c.parameters={...c.parameters,docs:{...(n=c.parameters)==null?void 0:n.docs,source:{originalSource:`{
+  tags: ['autodocs'],
+  args: {}
+}`,...(t=(e=c.parameters)==null?void 0:e.docs)==null?void 0:t.source}}};const $=["AccordionsGroupStory"];export{c as AccordionsGroupStory,$ as __namedExportsOrder,G as default};
