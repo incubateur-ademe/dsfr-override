@@ -545,13 +545,19 @@ function setPreviewMode(mode) {
   previewMode = mode;
   const iframe = document.getElementById('preview-frame');
   const palette = document.getElementById('palette-view');
-  for (const btn of document.querySelectorAll('.preview__bar button')) {
-    btn.classList.toggle('active', btn.dataset.mode === mode);
+  // Scope the toggle to the [data-mode] segmented control only — early
+  // versions used `.preview__bar button` which also matched the theme
+  // segmented and stripped its .active state on every view switch.
+  for (const btn of document.querySelectorAll('.preview__bar [data-mode]')) {
+    const active = btn.dataset.mode === mode;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', String(active));
   }
   if (mode === 'palette') {
     iframe.hidden = true;
     palette.hidden = false;
     renderPaletteView();
+    applyPreviewTheme(); // ensures the palette container reflects the current theme
   } else {
     iframe.hidden = false;
     palette.hidden = true;
@@ -560,6 +566,7 @@ function setPreviewMode(mode) {
       iframe.setAttribute('src', target);
     } else {
       applyPreview();
+      applyPreviewTheme();
     }
   }
 }
@@ -590,15 +597,20 @@ function setPreviewTheme(theme) {
 function applyPreviewTheme() {
   const iframe = document.getElementById('preview-frame');
   const doc = iframe?.contentDocument;
-  if (doc) {
-    if (previewTheme === 'auto') doc.documentElement.removeAttribute('data-fr-theme');
-    else doc.documentElement.setAttribute('data-fr-theme', previewTheme);
-  }
+  // For "auto" we don't simply removeAttribute: DSFR JS may have persisted
+  // the user's last explicit choice somewhere (theme module reading from
+  // localStorage / a previously-set attribute), so removing data-fr-theme
+  // doesn't bring back prefers-color-scheme. Resolve "auto" to the OS
+  // preference at click time and set the attribute explicitly. This makes
+  // "auto" stable: subsequent clicks always pick the right value.
+  const resolvedTheme = previewTheme === 'auto'
+    ? (iframe?.contentWindow?.matchMedia?.('(prefers-color-scheme: dark)')?.matches ? 'dark' : 'light')
+    : previewTheme;
+
+  if (doc) doc.documentElement.setAttribute('data-fr-theme', resolvedTheme);
+
   const view = document.getElementById('palette-view');
-  if (view) {
-    if (previewTheme === 'auto') view.removeAttribute('data-fr-theme');
-    else view.setAttribute('data-fr-theme', previewTheme);
-  }
+  if (view) view.setAttribute('data-fr-theme', resolvedTheme);
 }
 
 // =============================================================================
