@@ -19,6 +19,7 @@
     "palette": "tsx builder/index.ts palette",
     "serve": "tsx builder/serve.ts",
     "build:ui": "tsx scripts/build-ui.ts",
+    "build:pages": "tsx scripts/build-pages.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test 'builder/**/*.test.ts'",
     "storybook": "pnpm build && pnpm --filter dsfr-override-storybook storybook",

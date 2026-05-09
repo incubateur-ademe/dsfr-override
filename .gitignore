@@ -10,5 +10,8 @@ dist/
 # Bundle prod produit par `pnpm build:ui` (déployable, pas tracké)
 builder-ui/dist/
 
+# Bundle prod GitHub Pages produit par `pnpm build:pages` (déployable)
+_site/
+
 alert-info*.png
 *.tmp.png

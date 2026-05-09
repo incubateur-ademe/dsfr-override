@@ -105,12 +105,16 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   // populer les datalists (autocomplete) et les previews `<img>` inline sur
   // chaque ligne d'icône.
   //
-  // /__api/icons/dsfr        → JSON [{name, group}, ...]    (~1000 entrées)
-  // /__api/icons/lucide      → JSON ["circle-check", ...]   (~1500 entrées)
-  // /__api/icons/dsfr/svg/<name>.svg    → SVG DSFR résolu
-  // /__api/icons/lucide/svg/<name>.svg  → SVG Lucide résolu
+  // /__api/icons/dsfr.json        → [{name, group}, ...]    (~1000 entrées)
+  // /__api/icons/lucide.json      → ["circle-check", ...]   (~1500 entrées)
+  // /__api/icons/dsfr/<name>.svg  → SVG DSFR résolu
+  // /__api/icons/lucide/<name>.svg → SVG Lucide résolu
+  //
+  // Le suffixe `.json` du listing évite la collision avec le dossier portant
+  // le même nom (qui sert les SVG) — important pour le mirror statique
+  // produit par `pnpm build:pages`.
   // ---------------------------------------------------------------------------
-  if (urlPath === '/__api/icons/dsfr') {
+  if (urlPath === '/__api/icons/dsfr.json') {
     const root = join(PROJECT_ROOT, 'dsfr/src/dsfr/core/icon');
     const out: DsfrIcon[] = [];
     if (existsSync(root)) {
@@ -127,7 +131,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     res.end(JSON.stringify(out));
     return;
   }
-  if (urlPath === '/__api/icons/lucide') {
+  if (urlPath === '/__api/icons/lucide.json') {
     const root = join(PROJECT_ROOT, 'node_modules/lucide-static/icons');
     const out = existsSync(root)
       ? readdirSync(root).filter(f => f.endsWith('.svg')).map(f => f.slice(0, -4)).sort()
@@ -136,7 +140,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     res.end(JSON.stringify(out));
     return;
   }
-  const dsfrSvgMatch = urlPath.match(/^\/__api\/icons\/dsfr\/svg\/([a-z0-9-]+(?:--[a-z0-9-]+)*)\.svg$/i);
+  const dsfrSvgMatch = urlPath.match(/^\/__api\/icons\/dsfr\/([a-z0-9-]+(?:--[a-z0-9-]+)*)\.svg$/i);
   if (dsfrSvgMatch) {
     const name = dsfrSvgMatch[1];
     const root = join(PROJECT_ROOT, 'dsfr/src/dsfr/core/icon');
@@ -159,7 +163,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     }
     return;
   }
-  const lucideSvgMatch = urlPath.match(/^\/__api\/icons\/lucide\/svg\/([a-z0-9-]+)\.svg$/i);
+  const lucideSvgMatch = urlPath.match(/^\/__api\/icons\/lucide\/([a-z0-9-]+)\.svg$/i);
   if (lucideSvgMatch && lucideSvgMatch[1]) {
     const file = join(PROJECT_ROOT, 'node_modules/lucide-static/icons', `${lucideSvgMatch[1]}.svg`);
     if (existsSync(file)) {
@@ -176,7 +180,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   // en a besoin pour piloter l'aperçu live de toute famille (pas juste les 2
   // primaires qu'on hardcodait avant). Parse `dsfr/src/module/color/variable/_sets.scss`
   // avec un petit regex ad-hoc — DSFR garde ce format stable à travers la 1.x.
-  if (urlPath === '/__api/dsfr-shade-combos') {
+  if (urlPath === '/__api/dsfr-shade-combos.json') {
     const setsFile = join(PROJECT_ROOT, 'dsfr/src/module/color/variable/_sets.scss');
     const out: Record<string, ShadeCombo[]> = {};
     if (existsSync(setsFile)) {
@@ -215,7 +219,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   // Petite API JSON pour populer l'autocomplete fontes côté builder-ui.
   // Renvoie les basenames (sans extension) trouvés sous `assets/fonts/`,
   // dédupliqués par stem et triés.
-  if (urlPath === '/__api/fonts') {
+  if (urlPath === '/__api/fonts.json') {
     const dir = join(PROJECT_ROOT, 'assets/fonts');
     const stems: string[] = [];
     if (existsSync(dir)) {

@@ -462,8 +462,8 @@ function renderIcons(): string {
   // <img> previews resolved via /__api/icons/<source>/svg/<name>.svg. The
   // server 404s on unknown names, the onerror swap to a neutral placeholder
   // keeps the layout stable while typing.
-  const dsfrPreview = (name: string): string => `<img class="icon-preview" alt="" src="/__api/icons/dsfr/svg/${esc(name)}.svg" onerror="this.style.opacity=0.15;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22/>'">`;
-  const lucidePreview = (name: string): string => `<img class="icon-preview" alt="" src="/__api/icons/lucide/svg/${esc(name)}.svg" onerror="this.style.opacity=0.15;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22/>'">`;
+  const dsfrPreview = (name: string): string => `<img class="icon-preview" alt="" src="../__api/icons/dsfr/${esc(name)}.svg" onerror="this.style.opacity=0.15;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22/>'">`;
+  const lucidePreview = (name: string): string => `<img class="icon-preview" alt="" src="../__api/icons/lucide/${esc(name)}.svg" onerror="this.style.opacity=0.15;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22/>'">`;
 
   const ovRows = overrides.map(([from, to], i) => {
     const idF = fieldId(`icon-ov-${i}-from`);
@@ -778,7 +778,7 @@ function attachHandlers(): void {
     const fromInput = row.querySelector<HTMLInputElement>('[data-key="from"]')!;
     const toInput = row.querySelector<HTMLInputElement>('[data-key="to"]')!;
     fromInput.addEventListener('input', e => {
-      updatePreview(fromInput, '/__api/icons/dsfr/svg');
+      updatePreview(fromInput, '../__api/icons/dsfr');
       const target = e.target as HTMLInputElement;
       const newFrom = target.value;
       if (!newFrom || newFrom === from || state.icons?.overrides?.[newFrom]) return;
@@ -791,7 +791,7 @@ function attachHandlers(): void {
       renderAll(); applyAll();
     });
     toInput.addEventListener('input', e => {
-      updatePreview(toInput, '/__api/icons/lucide/svg');
+      updatePreview(toInput, '../__api/icons/lucide');
       state.icons ??= {}; state.icons.overrides ??= {};
       const target = e.target as HTMLInputElement;
       state.icons.overrides[from] = target.value;
@@ -823,7 +823,7 @@ function attachHandlers(): void {
     };
     tokenInput.addEventListener('input', setEntry);
     nameInput.addEventListener('input', () => {
-      updatePreview(nameInput, '/__api/icons/lucide/svg');
+      updatePreview(nameInput, '../__api/icons/lucide');
       setEntry();
     });
     row.querySelector<HTMLButtonElement>('[data-action="rm-icon-add"]')!.addEventListener('click', () => {
@@ -995,7 +995,7 @@ let DSFR_COMBOS_BY_FAMILY: Record<string, readonly ShadeCombo[]> = {
   'blue-france':   FALLBACK_PRIMARY_COMBOS,
   'red-marianne':  FALLBACK_PRIMARY_COMBOS
 };
-fetch('/__api/dsfr-shade-combos')
+fetch('../__api/dsfr-shade-combos.json')
   .then(r => r.ok ? r.json() : null)
   .then((j: unknown) => {
     if (j && typeof j === 'object') {
@@ -1485,14 +1485,14 @@ function fillDatalist(id: string, values: string[]): void {
   }
   dl.replaceChildren(frag);
 }
-fetch('/__api/icons/dsfr').then(r => r.ok ? r.json() : []).then((arr: Array<{ name: string }>) => {
+fetch('../__api/icons/dsfr.json').then(r => r.ok ? r.json() : []).then((arr: Array<{ name: string }>) => {
   fillDatalist('list-dsfr-icons', arr.map(e => e.name));
 }).catch(() => {});
-fetch('/__api/icons/lucide').then(r => r.ok ? r.json() : []).then((names: string[]) => {
+fetch('../__api/icons/lucide.json').then(r => r.ok ? r.json() : []).then((names: string[]) => {
   fillDatalist('list-lucide-icons', names);
 }).catch(() => {});
 
-fetch('/__api/fonts').then(r => r.ok ? r.json() : []).then((stems: string[]) => {
+fetch('../__api/fonts.json').then(r => r.ok ? r.json() : []).then((stems: string[]) => {
   const dl = document.getElementById('list-font-files') as HTMLDataListElement | null;
   if (!dl) return;
   const frag = document.createDocumentFragment();
