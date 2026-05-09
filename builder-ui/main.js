@@ -1,9 +1,66 @@
 import { parse, stringify } from 'yaml';
 import { computeFamilyPalette } from 'ademe-palette';
-import { contrastRatio } from 'ademe-lch';
+import { contrastRatio, hexToLch, lchToHex } from 'ademe-lch';
 import hljs from 'hljs/core';
 import yamlLang from 'hljs/yaml';
 hljs.registerLanguage('yaml', yamlLang);
+
+// All DSFR color families (from dsfr/src/module/color/variable/_options.scss).
+// Used by the "+ Add family" dropdown and validated in the family-key select.
+const DSFR_FAMILIES = [
+  'blue-france', 'red-marianne',
+  'info', 'success', 'warning', 'error',
+  'beige-gris-galet', 'blue-cumulus', 'blue-ecume',
+  'brown-cafe-creme', 'brown-caramel', 'brown-opera',
+  'green-archipel', 'green-bourgeon', 'green-emeraude',
+  'green-menthe', 'green-tilleul-verveine',
+  'orange-terre-battue', 'pink-macaron', 'pink-tuile',
+  'purple-glycine', 'yellow-moutarde', 'yellow-tournesol'
+  // Skipped: 'grey' (always overridden by DSFR _decisions, not anchor-driven).
+];
+
+// Hue ranges (LCh, h° in degrees) for utility colors. Anchors outside their
+// range are blocked in the UI to prevent semantic mismatch (a green error
+// or a red success). Ranges are deliberately wide.
+const UTILITY_HUE_RANGES = {
+  error:   { min: 340, max: 40 },   // wraps 0°
+  warning: { min: 20,  max: 80 },
+  success: { min: 90,  max: 180 },
+  info:    { min: 180, max: 280 }
+};
+const UTILITY_NAMES = ['info', 'success', 'warning', 'error'];
+
+// Returns true when h (in degrees) lies in [min, max], handling wrap-around
+// (e.g. error spans 340..40 across 0°).
+function hueInRange(h, { min, max }) {
+  if (h == null || Number.isNaN(h)) return false;
+  return min <= max ? (h >= min && h <= max) : (h >= min || h <= max);
+}
+
+// Validates an anchor candidate for a utility slot. Reasons:
+//   - hue out of range → semantic mismatch
+//   - L* < 35 → too dark, won't satisfy WCAG against a light fill
+//   - hex round-trips poorly → out-of-gamut chroma after clamp
+function checkUtilityAnchor(hex, utility) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return { ok: false, reason: 'hex invalide' };
+  const range = UTILITY_HUE_RANGES[utility];
+  let L, C, h;
+  try { [L, C, h] = hexToLch(hex); } catch { return { ok: false, reason: 'hex non parsable' }; }
+  if (range && !hueInRange(h, range)) {
+    return { ok: false, reason: `teinte h°=${h.toFixed(0)} hors zone ${utility} (${range.min}–${range.max}°)` };
+  }
+  if (L < 35) return { ok: false, reason: `L*=${L.toFixed(1)} trop sombre (< 35) pour un grade main d'utility` };
+  // Out-of-gamut sanity: round-trip through lchToHex; if it shifts more than
+  // ~12 bytes total (3 channels), the chroma was clamped significantly.
+  const back = lchToHex(L, C, h);
+  const dist = [0, 1, 2].reduce((s, i) => {
+    const a = parseInt(hex.slice(1 + 2*i, 3 + 2*i), 16);
+    const b = parseInt(back.slice(1 + 2*i, 3 + 2*i), 16);
+    return s + Math.abs(a - b);
+  }, 0);
+  if (dist > 12) return { ok: false, reason: `couleur hors gamut sRGB (saturation excessive)` };
+  return { ok: true, lch: { L, C, h } };
+}
 
 // =============================================================================
 // State : single source of truth, mirrors mapping.yml schema
@@ -61,6 +118,22 @@ const DEFAULT_STATE = {
     ]
   },
   components: { remove: ['header', 'footer'] },
+  'manual-overrides': ['./overrides/_card-fix.scss', './overrides/_alert-fix.scss'],
+  icons: {
+    overrides: {
+      'fr--success-fill': 'circle-check',
+      'fr--success-line': 'circle-check',
+      'fr--warning-fill': 'triangle-alert',
+      'fr--warning-line': 'triangle-alert',
+      'fr--error-fill':   'circle-x',
+      'fr--error-line':   'circle-x',
+      'fr--info-fill':    'info',
+      'fr--info-line':    'info',
+      'fr--accessibility-fill': 'accessibility',
+      'fr--accessibility-line': 'accessibility'
+    },
+    add: ['flame', 'leaf', { token: 'ademe-pin', name: 'map-pin' }]
+  },
   'post-process': { rename: { enabled: true, 'safety-check': true } },
   'post-css': { enabled: true, banner: true }
 };
@@ -163,7 +236,8 @@ function renderTypo() {
 
 function renderColors() {
   const families = Object.entries(state.colors ?? {});
-  const blocks = families.map(([family, cfg]) => {
+  const used = new Set(families.map(([k]) => k));
+  const blocks = families.map(([family, cfg], famIdx) => {
     const anchorHex = cfg.anchor?.hex ?? '#000000';
     const idKey = fieldId(`color-${family}-key`);
     const idRen = fieldId(`color-${family}-rename`);
@@ -180,12 +254,49 @@ function renderColors() {
           <button class="icon-btn" data-action="rm-recal" title="Supprimer">×</button>
         </div>`;
       }).join('');
-    return `<div data-family="${esc(family)}" class="family">
-      <h3>Famille <button type="button" class="help" data-help="Une famille = un anchor + un mapping de grades (75, 100, …, 975, sun, main).&#10;Le builder calcule chacun des 11 grades par remapping LCh autour de l&#39;anchor : la teinte (h°) et la chroma (C*) viennent de l&#39;anchor, la luminance (L*) suit le profil DSFR." aria-label="Aide famille" tabindex="0">?</button></h3>
-      ${$field('Nom DSFR (clé)', `<input type="text" id="${esc(idKey)}" name="${esc(idKey)}" value="${esc(family)}" data-key="family-key">`, idKey, 'identifiant dans le mapping (ex: blue-france)',
-        'Nom de la famille DSFR à overrider. Doit matcher une clé existante dans `dsfr/src/module/color/variable/_options.scss` (`blue-france`, `red-marianne`, etc.). Le builder regénère cette section dans le workspace avec les valeurs LCh recalculées.')}
+    // family-key is a select bound to DSFR_FAMILIES (+ the current value if it
+    // somehow drifts). Switching it renames the key in state.colors.
+    const famOptions = [family, ...DSFR_FAMILIES.filter(f => f !== family && !used.has(f))]
+      .map(f => `<option value="${esc(f)}" ${f === family ? 'selected' : ''}>${esc(f)}</option>`).join('');
+    const isUtility = UTILITY_NAMES.includes(family);
+    const isPrimary = famIdx < 2 && !isUtility;
+    const utilityWarning = isUtility ? checkUtilityAnchor(anchorHex, family) : null;
+    const utilityBadge = utilityWarning && !utilityWarning.ok
+      ? `<div class="utility-warning" role="alert">⚠ ${esc(utilityWarning.reason)}</div>`
+      : '';
+    // Utility preset dropdown: secondary (if compatible) + curated list.
+    // Selecting a preset just rewrites anchor.hex — no schema change.
+    let presetSelect = '';
+    if (isUtility) {
+      const sec = getSecondaryAnchor(family);
+      const secOk = sec && checkUtilityAnchor(sec.hex, family).ok;
+      const opts = [];
+      opts.push(`<option value="">— Choisir un preset —</option>`);
+      if (sec) {
+        if (secOk) {
+          opts.push(`<option value="${esc(sec.hex)}">secondary (${esc(sec.family)} — ${esc(sec.hex)})</option>`);
+        } else {
+          opts.push(`<option disabled>secondary (${esc(sec.family)}) hors zone</option>`);
+        }
+      }
+      for (const [hex, label] of UTILITY_PRESETS[family] ?? []) {
+        opts.push(`<option value="${esc(hex)}">${esc(label)} — ${esc(hex)}</option>`);
+      }
+      presetSelect = `<div class="field field--preset">
+        <label for="${esc(fieldId(`color-${family}-preset`))}">Preset <button type="button" class="help" data-help="Raccourcis pour caler l&#39;anchor sur une teinte connue compatible avec l&#39;utility.&#10;&#10;&#96;secondary&#96; : reprend l&#39;anchor de la 2ᵉ famille primaire si sa teinte tombe dans la zone autorisée (ex : &#96;red-laura&#96; → OK pour &#96;error&#96;).&#10;&#96;DSFR &lt;utility&gt;&#96; : valeur historique du DSFR pour cet utility, conservée pour la migration douce.&#10;Autres : couleurs d&#39;inspiration courantes (Tailwind / web standards) pré-validées." aria-label="Aide preset utility" tabindex="0">?</button></label>
+        <select id="${esc(fieldId(`color-${family}-preset`))}" data-action="apply-preset">${opts.join('')}</select>
+      </div>`;
+    }
+    return `<div data-family="${esc(family)}" class="family${isUtility ? ' family--utility' : ''}${isPrimary ? ' family--primary' : ''}">
+      <div class="family__head">
+        <h3>${isUtility ? 'Utilitaire' : 'Famille'} <button type="button" class="help" data-help="Une famille = un anchor + un mapping de grades (75, 100, …, 975, sun, main).&#10;Le builder calcule chacun des 11 grades par remapping LCh autour de l&#39;anchor : la teinte (h°) et la chroma (C*) viennent de l&#39;anchor, la luminance (L*) suit le profil DSFR." aria-label="Aide famille" tabindex="0">?</button></h3>
+        <button class="icon-btn" data-action="rm-family" title="Retirer cette famille du mapping">×</button>
+      </div>
+      ${$field('Nom DSFR (clé)', `<select id="${esc(idKey)}" name="${esc(idKey)}" data-key="family-key">${famOptions}</select>`, idKey, 'identifiant dans le mapping',
+        'Nom de la famille DSFR à overrider. Liste fermée : les 24 familles connues de `dsfr/src/module/color/variable/_options.scss`. Changer la clé renomme l\'entrée dans `state.colors`.')}
       ${$field('Rename (libre)', `<input type="text" id="${esc(idRen)}" name="${esc(idRen)}" value="${esc(cfg.rename)}" data-key="rename" placeholder="blue-ate">`, idRen, 'nouveau nom dans le CSS final',
         'Texte avec lequel le post-process sed remplace `blue-france` (ou la clé d’origine) dans `dist/*.css|js`.\nValeur libre — toute chaîne sans espaces marche. Sert à neutraliser les références État du CSS final.\nExemples : `blue-ate`, `vert-ademe`, `theme-2026`.')}
+      ${presetSelect}
       <div class="field field--color">
         <label for="${esc(idHex)}">Anchor <button type="button" class="help" data-help="Couleur de référence (un seul hex). Tous les grades de la famille sont recalculés par déplacement de luminance autour de cet anchor — la teinte et la chroma sont conservées.&#10;&#10;C&#39;est la couleur que &#96;main-XXX&#96; portera. Le numéro du grade &#96;main&#96; est dérivé de la luminance LCh : &#96;main-444&#96; pour L*=44.4, &#96;main-560&#96; pour L*=56.0." aria-label="Aide anchor" tabindex="0">?</button></label>
         <input type="color" id="${esc(idCol)}" name="${esc(idCol)}" value="${esc(anchorHex.toLowerCase())}" data-key="anchor-color">
@@ -198,10 +309,24 @@ function renderColors() {
       <h3>Recalibrate-grade <button type="button" class="help" data-help="Émet des alias de grades pour ne casser ni les références internes DSFR ni le nouveau naming.&#10;&#10;Exemple : &#96;main-525: main-444&#96; veut dire « le grade DSFR original &#96;main-525&#96; n&#39;existe plus — il s&#39;appelle maintenant &#96;main-444&#96; ». Le builder émet alors &#96;--blue-france-main-525&#96; ET &#96;--blue-france-main-444&#96; avec la même valeur, donc :&#10;1. Les composants DSFR qui pointent vers &#96;main-525&#96; continuent à fonctionner&#10;2. Le nouveau nom &#96;main-444&#96; (cohérent avec L*×10) est dispo&#10;&#10;Le builder gère les &#96;main-&#96; (changement après calcul de L*×10) automatiquement, mais pour &#96;sun-XXX → sun-YYY&#96; il faut le déclarer explicitement." aria-label="Aide recalibrate" tabindex="0">?</button></h3>
       ${recal}
       <button class="add-btn" data-action="add-recal">+ recalibrate</button>
+      ${utilityBadge}
       <hr style="border: 0; border-top: 1px solid #eee; margin: 0.75rem 0">
     </div>`;
   }).join('');
-  return $section('Couleurs', blocks, { help:
+  // "+ Add family" footer: dropdown of unused DSFR families + Utility shortcuts.
+  const unused = DSFR_FAMILIES.filter(f => !used.has(f));
+  const utilityShortcuts = UTILITY_NAMES.filter(u => !used.has(u))
+    .map(u => `<button class="add-btn add-btn--utility" data-action="add-utility" data-utility="${esc(u)}">+ ${esc(u)}</button>`).join(' ');
+  const addFamilyRow = unused.length
+    ? `<div class="add-family">
+         <select id="add-family-select" aria-label="Famille à ajouter">
+           ${unused.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('')}
+         </select>
+         <button class="add-btn" data-action="add-family">+ Ajouter cette famille</button>
+         ${utilityShortcuts ? `<span style="opacity: 0.6; font-size: 11px">ou raccourcis utilitaires :</span> ${utilityShortcuts}` : ''}
+       </div>`
+    : '<p style="opacity: 0.6">Toutes les familles DSFR sont déjà mappées.</p>';
+  return $section('Couleurs', blocks + addFamilyRow, { help:
 'Pour chaque famille DSFR (`blue-france`, `red-marianne`…), définit un anchor de couleur. Le builder calcule automatiquement les 11 grades (`75` → `975`, `sun`, `main`) via remapping LCh autour de cet anchor.\n\n• `Nom DSFR (clé)` : identifiant dans `dsfr/_options.scss`.\n• `Rename` : nom libre utilisé par le post-process sed pour neutraliser le préfixe État dans le CSS final.\n• `Anchor` : couleur de référence. Sert à dériver tous les autres grades.\n• `Recalibrate` : émet un alias entre 2 noms de grade (l\'ancien ET le nouveau pointent sur la même valeur).' });
 }
 
@@ -288,8 +413,59 @@ function renderPostProcess() {
 'Étapes appliquées après la compilation sass, sur le CSS final dans `dist/`.\n\nChaque sous-étape est opt-out via son toggle. Aucun effet sur la preview live.' });
 }
 
+function renderIcons() {
+  const ic = state.icons ?? {};
+  const overrides = Object.entries(ic.overrides ?? {});
+  const add = (ic.add ?? []).map(e => typeof e === 'string' ? { token: e, name: e } : e);
+  const ovRows = overrides.map(([from, to], i) => {
+    const idF = fieldId(`icon-ov-${i}-from`);
+    const idT = fieldId(`icon-ov-${i}-to`);
+    return `<div class="list-row" data-icon-ov-from="${esc(from)}">
+      <input type="text" id="${esc(idF)}" name="${esc(idF)}" value="${esc(from)}" data-key="from" placeholder="fr--success-fill" title="Nom DSFR (préfixe fr-- inclus)">
+      <span aria-hidden="true">→</span>
+      <input type="text" id="${esc(idT)}" name="${esc(idT)}" value="${esc(to)}" data-key="to" placeholder="circle-check" title="Nom Lucide">
+      <button class="icon-btn" data-action="rm-icon-ov" title="Supprimer">×</button>
+    </div>`;
+  }).join('');
+  const addRows = add.map((entry, i) => {
+    const idTok = fieldId(`icon-add-${i}-token`);
+    const idNm  = fieldId(`icon-add-${i}-name`);
+    return `<div class="list-row" data-icon-add-idx="${i}">
+      <input type="text" id="${esc(idTok)}" name="${esc(idTok)}" value="${esc(entry.token)}" data-key="token" placeholder="flame" title="Token court → .fr-icon-<token>">
+      <span aria-hidden="true">=</span>
+      <input type="text" id="${esc(idNm)}" name="${esc(idNm)}" value="${esc(entry.name)}" data-key="name" placeholder="flame" title="Nom Lucide source (= token si alias non nécessaire)">
+      <button class="icon-btn" data-action="rm-icon-add" title="Supprimer">×</button>
+    </div>`;
+  }).join('');
+  return $section('Icônes', `
+    <h3>Overrides <button type="button" class="help" data-help="Remplace le SVG d&#39;une icône DSFR (clé = nom DSFR avec préfixe &#96;fr--&#96;) par son équivalent Lucide. Le nom de classe CSS (&#96;.fr-icon-success-fill&#96;) reste, donc les composants DSFR continuent de marcher — seul le contenu du fichier change. Lucide étant stroke-based, le rendu en mask-image donne une silhouette en lignes (pas en aplat plein comme les Remix DSFR)." aria-label="Aide overrides icônes" tabindex="0">?</button></h3>
+    ${ovRows}
+    <button class="add-btn" data-action="add-icon-ov">+ override</button>
+    <h3>Add (nouvelles classes utilitaires) <button type="button" class="help" data-help="Ajoute des icônes Lucide accessibles via &#96;.fr-icon-&lt;token&gt;&#96;. Le token = nom de la classe générée. Le name = nom Lucide source (mis à token si alias non nécessaire). Exemple : &#96;{ token: ademe-pin, name: map-pin }&#96; → &#96;.fr-icon-ademe-pin&#96; sourcé sur lucide &#96;map-pin&#96;." aria-label="Aide add icônes" tabindex="0">?</button></h3>
+    ${addRows}
+    <button class="add-btn" data-action="add-icon-add">+ icône à ajouter</button>
+  `, { cliOnly: true, help:
+'Pipeline d\'icônes :\n• `overrides` : remplace 1-1 les `fr--*` (préfixe DSFR) par des `lucide-static`.\n• `add` : ajoute des classes utilitaires `.fr-icon-<token>` puisées dans Lucide.\n\nLe builder copie les SVG depuis `node_modules/lucide-static/icons/<name>.svg`. Aucun effet sur la preview live (les SVG sont copiés au build).' });
+}
+
+function renderManualOverrides() {
+  const items = (state['manual-overrides'] ?? []);
+  const rows = items.map((p, i) => {
+    const idP = fieldId(`mo-${i}`);
+    return `<div class="list-row" data-mo-idx="${i}">
+      <input type="text" id="${esc(idP)}" name="${esc(idP)}" value="${esc(p)}" data-key="path" placeholder="./overrides/_card-fix.scss" title="Chemin relatif au projet">
+      <button class="icon-btn" data-action="rm-mo" title="Supprimer">×</button>
+    </div>`;
+  }).join('');
+  return $section('Manual overrides', `
+    ${rows}
+    <button class="add-btn" data-action="add-mo">+ override SCSS</button>
+  `, { cliOnly: true, help:
+'Liste de fichiers SCSS user-curated (trackés dans `overrides/`, non-générés) à `@import` en fin de cascade.\n\nUtile quand un override demande une logique impossible à exprimer côté `mapping.yml` (ex : `_card-fix.scss` redessine la bordure card avec `box-shadow: inset` parce que les gradients DSFR ignorent le `border-radius`).' });
+}
+
 function renderAll() {
-  const html = [renderMeta(), renderTypo(), renderColors(), renderRadius(), renderShadows(), renderComponents(), renderPostProcess()].join('');
+  const html = [renderMeta(), renderTypo(), renderColors(), renderRadius(), renderShadows(), renderComponents(), renderIcons(), renderManualOverrides(), renderPostProcess()].join('');
   // All interpolated values went through esc() — safe to use innerHTML here.
   document.querySelector('.settings').innerHTML = html;
   attachHandlers();
@@ -307,6 +483,42 @@ function setPath(obj, path, value) {
     cur = cur[keys[i]];
   }
   cur[keys[keys.length - 1]] = value;
+}
+
+// Sensible starter anchor for a freshly-added family. Utility families pick a
+// hex squarely in their hue range; primaries fall back to a neutral mid-grey
+// so the user immediately sees the family appearing and tweaks the anchor.
+function defaultAnchorFor(family) {
+  const fallback = '#888888';
+  const map = {
+    error:   '#FF3333',  // red, h°≈30
+    warning: '#FF8C1A',  // orange, h°≈55
+    success: '#1FA85B',  // green, h°≈140
+    info:    '#3B82F6'   // blue, h°≈250
+  };
+  return map[family] || fallback;
+}
+
+// Hand-picked presets per utility, all anchored squarely in their hue range
+// so users get a quick "in-range" choice without dropping into the full picker.
+// First entry = current DSFR default for that utility (visual continuity).
+const UTILITY_PRESETS = {
+  error:   [['#CE0500', 'DSFR error'], ['#DC2626', 'Crimson'],   ['#FF4D4D', 'Coral']],
+  warning: [['#B34000', 'DSFR warning'], ['#F59E0B', 'Amber'],     ['#FF7700', 'Orange']],
+  success: [['#18753C', 'DSFR success'], ['#10B981', 'Emerald'],   ['#228B22', 'Forest']],
+  info:    [['#0063CB', 'DSFR info'],    ['#0EA5E9', 'Sky'],       ['#4F46E5', 'Indigo']]
+};
+
+// "Secondary" by DSFR convention = the 2nd primary family (blue-france is 1st,
+// red-marianne is 2nd — secondary). We return the 2nd non-utility entry of
+// state.colors so a renamed mapping still works. Null if fewer than 2 primaries.
+function getSecondaryAnchor(currentFamily) {
+  const primaries = Object.entries(state.colors ?? {})
+    .filter(([k]) => !UTILITY_NAMES.includes(k) && k !== currentFamily);
+  if (primaries.length < 2) return null;
+  const [name, cfg] = primaries[1];
+  if (!cfg.anchor?.hex) return null;
+  return { family: cfg.rename || name, hex: cfg.anchor.hex };
 }
 
 function deletePath(obj, path) {
@@ -343,9 +555,33 @@ function attachHandlers() {
     const colorInput = fam.querySelector('[data-key="anchor-color"]');
     const hexInput = fam.querySelector('[data-key="anchor-hex"]');
     const renameInput = fam.querySelector('[data-key="rename"]');
+    // Live-update the utility warning + WCAG mini badges without a full
+    // renderAll, so dragging the colour picker stays smooth.
+    const refreshUtilityBadge = () => {
+      const cur = state.colors?.[family]?.anchor?.hex ?? '#000000';
+      const wcagSpan = fam.querySelector('.wcag-mini');
+      if (wcagSpan) wcagSpan.innerHTML = wcagMiniBadges(cur);
+      if (!UTILITY_NAMES.includes(family)) return;
+      const check = checkUtilityAnchor(cur, family);
+      let badge = fam.querySelector('.utility-warning');
+      if (check.ok) {
+        badge?.remove();
+      } else {
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.className = 'utility-warning';
+          badge.setAttribute('role', 'alert');
+          const sep = fam.querySelector('hr');
+          if (sep) fam.insertBefore(badge, sep);
+          else fam.appendChild(badge);
+        }
+        badge.textContent = '⚠ ' + check.reason;
+      }
+    };
     colorInput.addEventListener('input', () => {
       hexInput.value = colorInput.value.toUpperCase();
       state.colors[family].anchor = { hex: colorInput.value.toUpperCase() };
+      refreshUtilityBadge();
       onStateChanged();
     });
     hexInput.addEventListener('input', () => {
@@ -354,6 +590,7 @@ function attachHandlers() {
         const hex = v.startsWith('#') ? v : '#' + v;
         colorInput.value = hex.toLowerCase();
         state.colors[family].anchor = { hex: hex.toUpperCase() };
+        refreshUtilityBadge();
         onStateChanged();
       }
     });
@@ -378,7 +615,56 @@ function attachHandlers() {
       state.colors[family]['recalibrate-grade'][`grade-${Date.now()}`] = '';
       renderAll(); applyAll();
     });
+    // family-key change → rename the entry in state.colors, preserving order.
+    const keySelect = fam.querySelector('[data-key="family-key"]');
+    if (keySelect) {
+      keySelect.addEventListener('change', () => {
+        const newKey = keySelect.value;
+        if (!newKey || newKey === family || state.colors[newKey]) return;
+        const next = {};
+        for (const [k, v] of Object.entries(state.colors)) {
+          next[k === family ? newKey : k] = v;
+        }
+        state.colors = next;
+        renderAll(); applyAll();
+      });
+    }
+    fam.querySelector('[data-action="rm-family"]').addEventListener('click', () => {
+      delete state.colors[family];
+      renderAll(); applyAll();
+    });
+    const presetSel = fam.querySelector('[data-action="apply-preset"]');
+    if (presetSel) {
+      presetSel.addEventListener('change', () => {
+        const hex = presetSel.value;
+        if (!hex) return;
+        state.colors[family].anchor = { hex: hex.toUpperCase() };
+        renderAll(); applyAll();
+      });
+    }
   }
+  // "+ Add family" footer wiring.
+  const addFamilyBtn = document.querySelector('[data-action="add-family"]');
+  if (addFamilyBtn) addFamilyBtn.addEventListener('click', () => {
+    const sel = document.getElementById('add-family-select');
+    const name = sel?.value;
+    if (!name || state.colors?.[name]) return;
+    state.colors ??= {};
+    // Default anchor: a sane DSFR-flavoured value per family bucket. For
+    // utilities we pick a hue squarely inside the validated range so the
+    // newly-added entry isn't immediately flagged.
+    state.colors[name] = { generation: 'lch-remap', anchor: { hex: defaultAnchorFor(name) } };
+    renderAll(); applyAll();
+  });
+  document.querySelectorAll('[data-action="add-utility"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.utility;
+      if (!name || state.colors?.[name]) return;
+      state.colors ??= {};
+      state.colors[name] = { generation: 'lch-remap', anchor: { hex: defaultAnchorFor(name) } };
+      renderAll(); applyAll();
+    });
+  });
 
   document.querySelectorAll('[data-target-idx]').forEach(row => {
     const idx = Number(row.dataset.targetIdx);
@@ -402,6 +688,80 @@ function attachHandlers() {
   const addTargetBtn = document.querySelector('[data-action="add-target"]');
   if (addTargetBtn) addTargetBtn.addEventListener('click', () => {
     state['border-radius'].targets.push({ selector: '.fr-', value: '0.75rem' });
+    renderAll(); applyAll();
+  });
+
+  // Icons.overrides — pairs { from: dsfrName, to: lucideName }.
+  document.querySelectorAll('[data-icon-ov-from]').forEach(row => {
+    const from = row.dataset.iconOvFrom;
+    row.querySelector('[data-key="from"]').addEventListener('input', e => {
+      const newFrom = e.target.value;
+      if (!newFrom || newFrom === from || state.icons?.overrides?.[newFrom]) return;
+      const next = {};
+      for (const [k, v] of Object.entries(state.icons.overrides)) {
+        next[k === from ? newFrom : k] = v;
+      }
+      state.icons.overrides = next;
+      renderAll(); applyAll();
+    });
+    row.querySelector('[data-key="to"]').addEventListener('input', e => {
+      state.icons ??= {}; state.icons.overrides ??= {};
+      state.icons.overrides[from] = e.target.value;
+      onStateChanged();
+    });
+    row.querySelector('[data-action="rm-icon-ov"]').addEventListener('click', () => {
+      delete state.icons?.overrides?.[from];
+      renderAll(); applyAll();
+    });
+  });
+  const addIconOvBtn = document.querySelector('[data-action="add-icon-ov"]');
+  if (addIconOvBtn) addIconOvBtn.addEventListener('click', () => {
+    state.icons ??= {}; state.icons.overrides ??= {};
+    state.icons.overrides[`fr--new-${Date.now()}`] = '';
+    renderAll(); applyAll();
+  });
+  // Icons.add — array of strings or { token, name } objects.
+  document.querySelectorAll('[data-icon-add-idx]').forEach(row => {
+    const idx = Number(row.dataset.iconAddIdx);
+    const tokenInput = row.querySelector('[data-key="token"]');
+    const nameInput = row.querySelector('[data-key="name"]');
+    const setEntry = () => {
+      const token = tokenInput.value.trim();
+      const name = nameInput.value.trim();
+      // Compact form (string) when token === name and token is non-empty.
+      state.icons ??= {}; state.icons.add ??= [];
+      state.icons.add[idx] = (token && token === name) ? token : { token, name };
+      onStateChanged();
+    };
+    tokenInput.addEventListener('input', setEntry);
+    nameInput.addEventListener('input', setEntry);
+    row.querySelector('[data-action="rm-icon-add"]').addEventListener('click', () => {
+      state.icons.add.splice(idx, 1);
+      renderAll(); applyAll();
+    });
+  });
+  const addIconAddBtn = document.querySelector('[data-action="add-icon-add"]');
+  if (addIconAddBtn) addIconAddBtn.addEventListener('click', () => {
+    state.icons ??= {}; state.icons.add ??= [];
+    state.icons.add.push('');
+    renderAll(); applyAll();
+  });
+  // Manual overrides — flat array of relative paths.
+  document.querySelectorAll('[data-mo-idx]').forEach(row => {
+    const idx = Number(row.dataset.moIdx);
+    row.querySelector('[data-key="path"]').addEventListener('input', e => {
+      state['manual-overrides'][idx] = e.target.value;
+      onStateChanged();
+    });
+    row.querySelector('[data-action="rm-mo"]').addEventListener('click', () => {
+      state['manual-overrides'].splice(idx, 1);
+      renderAll(); applyAll();
+    });
+  });
+  const addMoBtn = document.querySelector('[data-action="add-mo"]');
+  if (addMoBtn) addMoBtn.addEventListener('click', () => {
+    state['manual-overrides'] ??= [];
+    state['manual-overrides'].push('./overrides/_new-fix.scss');
     renderAll(); applyAll();
   });
 
@@ -511,7 +871,10 @@ function pushPreviewState() {
 // vars. Hardcoded for the 2 ADEME-tracked families; if the user adds another
 // family the live preview won't reflect the combined vars (full build CLI
 // will). Variant emitted: light-mode value only (most components use that).
-const DSFR_SHADE_COMBOS = [
+// Per-family combo lists are loaded at boot from /__api/dsfr-shade-combos
+// (parsed from dsfr/_sets.scss). Until that resolves, this hardcoded fallback
+// covers blue-france / red-marianne so the live preview works on first paint.
+const FALLBACK_PRIMARY_COMBOS = [
   { name: 'sun-113-625', light: 'sun-113', dark: '625' },
   { name: '850-200',     light: '850',     dark: '200' },
   { name: '925-125',     light: '925',     dark: '125' },
@@ -520,6 +883,19 @@ const DSFR_SHADE_COMBOS = [
   { name: 'main-525',    light: 'main-525', dark: 'main-525' },
   { name: '975-sun-113', light: '975',     dark: 'sun-113' }
 ];
+let DSFR_COMBOS_BY_FAMILY = {
+  'blue-france':   FALLBACK_PRIMARY_COMBOS,
+  'red-marianne':  FALLBACK_PRIMARY_COMBOS
+};
+fetch('/__api/dsfr-shade-combos')
+  .then(r => r.ok ? r.json() : null)
+  .then(j => {
+    if (j && typeof j === 'object') {
+      DSFR_COMBOS_BY_FAMILY = j;
+      applyPreview();
+    }
+  })
+  .catch(() => { /* keep fallback */ });
 
 function buildPreviewCss() {
   // The combined shade vars (e.g. --blue-ate-sun-113-625) carry DIFFERENT
@@ -542,7 +918,21 @@ function buildPreviewCss() {
         semanticRemap: deriveSemanticRemap(family, cfg)
       });
     } catch { continue; }
-    familiesPalette.push({ family, renamed: cfg.rename || family, palette, byName: Object.fromEntries(palette.map(e => [e.name, e.values])) });
+    const byName = Object.fromEntries(palette.map(e => [e.name, e.values]));
+    // Alias each "main-XXX" grade requested by DSFR's own combos to whichever
+    // main grade our LCh remap produced — palette.js does the same on the CLI
+    // side via pushWithAlias. Without this, an utility like `error` (anchor
+    // #FF3333 → main-560) would not emit `--error-main-525` even though
+    // _sets.scss demands it.
+    const mainEntry = palette.find(e => e.name.startsWith('main-'));
+    if (mainEntry) {
+      const combos = DSFR_COMBOS_BY_FAMILY[family] ?? FALLBACK_PRIMARY_COMBOS;
+      for (const c of combos) {
+        if (c.light.startsWith('main-') && !byName[c.light]) byName[c.light] = mainEntry.values;
+        if (c.dark.startsWith('main-')  && !byName[c.dark])  byName[c.dark]  = mainEntry.values;
+      }
+    }
+    familiesPalette.push({ family, renamed: cfg.rename || family, palette, byName });
   }
 
   // !important on every var so we beat DSFR's own @media (prefers-color-scheme:
@@ -559,7 +949,8 @@ function buildPreviewCss() {
           if (renamed !== family) out.push(`  --${renamed}-${name}: ${values[0]}${IMP};`);
         }
       }
-      for (const combo of DSFR_SHADE_COMBOS) {
+      const combos = DSFR_COMBOS_BY_FAMILY[family] ?? FALLBACK_PRIMARY_COMBOS;
+      for (const combo of combos) {
         const grade = byName[mode === 'dark' ? combo.dark : combo.light];
         if (!grade) continue;
         const [def, hover = def, active = def] = grade;

@@ -85,6 +85,33 @@ button.add-btn {
   margin-top: 0.25rem;
 }
 button.add-btn:hover { background: #f0eaff; }
+button.add-btn--utility { font-size: 10px; padding: 0.15rem 0.4rem; }
+
+.family__head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 0.5rem;
+}
+.family__head h3 { margin: 0; }
+.family__head .icon-btn {
+  background: transparent; border: 1px solid transparent; cursor: pointer;
+  padding: 0 0.4rem; border-radius: 3px; color: #888; font-size: 14px;
+}
+.family__head .icon-btn:hover { background: #fee; color: #c00; border-color: #fcc; }
+
+.family--utility { border-left: 3px solid #ffaa00; padding-left: 0.5rem; margin-left: -0.5rem; }
+.family--primary { border-left: 3px solid #4950fb; padding-left: 0.5rem; margin-left: -0.5rem; }
+
+.utility-warning {
+  background: #fff4e0; border: 1px solid #ffaa00; color: #663300;
+  padding: 0.4rem 0.6rem; border-radius: 4px; font-size: 11px;
+  margin-top: 0.5rem;
+}
+
+.add-family {
+  display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
+  margin-top: 0.5rem; padding: 0.5rem; background: #fafafa; border-radius: 4px;
+}
+.add-family select { font-size: 11px; padding: 0.2rem; }
 
 .toggle { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
 .toggle input { margin: 0; }

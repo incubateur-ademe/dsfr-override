@@ -70,12 +70,30 @@ Les composants DSFR ne lisent jamais `--blue-france-sun-157` directement, ils li
 
 Le builder UI hardcode la liste des 7 combinaisons que DSFR émet pour les familles primaires (`sun-113-625`, `850-200`, `925-125`, `950-100`, `975-75`, `main-525`, `975-sun-113`) et les override avec les valeurs LCh recalculées. Si DSFR change la structure de `_sets.scss` (drift), c'est un fix à pousser ici.
 
+## Toutes les familles DSFR
+
+L'éditeur de couleurs propose les 24 familles connues de `dsfr/src/module/color/variable/_options.scss` (sauf `grey`, qui suit son propre régime DSFR). Chaque famille s'ajoute via un dropdown footer ou les raccourcis utility (info / success / warning / error). L'input « Nom DSFR (clé) » est un `<select>` fermé sur cette liste — il renomme la clé dans `state.colors` en préservant l'ordre.
+
+La preview live des combinaisons fonctionne pour toute famille : au boot, le builder fetch `/__api/dsfr-shade-combos`, qui parse `_sets.scss` côté serveur et renvoie `{ family: [{ name, light, dark }, ...] }`. La liste hardcodée pour `blue-france` / `red-marianne` reste comme fallback si l'endpoint est indispo.
+
+## Couleurs utilitaires (`info` / `success` / `warning` / `error`)
+
+Les utilitaires ont une UX de validation dédiée :
+
+- **Zones de teinte** (LCh, h°) larges : `error` 340–40°, `warning` 20–80°, `success` 90–180°, `info` 180–280°. Un anchor hors zone affiche un bandeau d'alerte sous la famille.
+- **Sanity checks supplémentaires** : `L* < 35` rejeté (trop sombre), round-trip `lchToHex` qui dévie de >12 bytes (saturation hors gamut sRGB).
+- **Dropdown « Preset »** : raccourcis pré-validés.
+  - `secondary` : reprend l'anchor de la 2ᵉ famille primaire (par convention `red-marianne` → `red-laura`). Activé seulement si sa teinte tombe dans la zone — sinon affiché en `disabled`.
+  - `DSFR <utility>` : valeur historique DSFR (continuité), ex `#CE0500` pour error.
+  - 2 alternatives "web standards" par utility (Crimson, Coral, Emerald, etc.).
+
+## Icônes & manual-overrides
+
+L'éditeur expose désormais les sections `icons` (overrides + add) et `manual-overrides` directement. Pas d'autocomplete Lucide pour rester light — les noms se tapent en clair, le builder CLI les résout depuis `node_modules/lucide-static/icons/`.
+
 ## Limites assumées
 
-- **Familles autres que `blue-france` / `red-marianne`** : la preview live des combinaisons ne fonctionne pas (la liste DSFR_SHADE_COMBOS est hardcodée pour ces 2 familles seulement). L'export YAML reste correct, le `pnpm build` final regenérera tout.
-- **Icônes** : pas encore d'éditeur d'overrides Lucide dans l'UI. Edition côté YAML uniquement pour l'instant.
-- **Manual overrides** : pareil, YAML uniquement.
-- **Pas de backend** : c'est intentionnel — la preview est une simulation côté client (Niveau 1). Pour un rendu 100% fidèle (avec rename, dedup, banner), exporter le YAML puis lancer `pnpm build`.
+- **Pas de backend live pour le rename / dedup / banner** : c'est intentionnel — la preview reste une simulation côté client (Niveau 1). Pour un rendu 100% fidèle (avec rename, dedup, banner CSS), exporter le YAML puis lancer `pnpm build`.
 
 ## Fichiers
 

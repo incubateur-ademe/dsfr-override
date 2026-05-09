@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { createReadStream, existsSync, readdirSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
 
@@ -23,6 +23,45 @@ const MIME = {
 const server = createServer((req, res) => {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   if (urlPath === '/' || urlPath === '') urlPath = ROOT_PAGE;
+
+  // Tiny JSON API used by the builder-ui to discover the shade combos that
+  // DSFR emits as `--<family>-<lightGrade>-<darkGrade>` vars. We need them to
+  // override the live preview for any family (not just the 2 primaries we
+  // used to hardcode). Parses dsfr/src/module/color/variable/_sets.scss with
+  // a small ad-hoc regex — DSFR has kept this format stable across 1.x.
+  if (urlPath === '/__api/dsfr-shade-combos') {
+    const setsFile = join(PROJECT_ROOT, 'dsfr/src/module/color/variable/_sets.scss');
+    const out = {};
+    if (existsSync(setsFile)) {
+      const text = readFileSync(setsFile, 'utf8');
+      // Walk each `family-name: (` block, then capture nested entries of
+      // shape `semantic: family-leftGrade family-rightGrade,`.
+      const familyRe = /^\s{4}([a-z][a-z0-9-]+):\s*\($/gm;
+      let m;
+      while ((m = familyRe.exec(text)) !== null) {
+        const family = m[1];
+        if (family === 'grey') continue; // DSFR handles grey specially
+        const blockStart = familyRe.lastIndex;
+        const blockEnd = text.indexOf(')', blockStart);
+        if (blockEnd < 0) continue;
+        const block = text.slice(blockStart, blockEnd);
+        const combos = [];
+        const entryRe = new RegExp(`^\\s+[a-z-]+:\\s*${family}-([a-z0-9-]+)\\s+${family}-([a-z0-9-]+),?$`, 'gm');
+        let entry;
+        while ((entry = entryRe.exec(block)) !== null) {
+          const [, light, dark] = entry;
+          // DSFR collapses --<family>-<grade>-<grade> when light===dark to
+          // just --<family>-<grade> (e.g. main-525-main-525 → main-525).
+          const name = light === dark ? light : `${light}-${dark}`;
+          combos.push({ name, light, dark });
+        }
+        if (combos.length) (out[family] ??= []).push(...combos);
+      }
+    }
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    res.end(JSON.stringify(out));
+    return;
+  }
 
   // Tiny JSON API used by the builder-ui to populate font autocompletes.
   // Returns the list of font basenames (without extension) under
