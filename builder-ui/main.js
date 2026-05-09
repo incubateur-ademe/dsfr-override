@@ -282,6 +282,8 @@ function renderPostProcess() {
     <h3>PostCSS <button type="button" class="help" data-help="&#96;enabled&#96; : applique &#96;mqpacker&#96; (regroupe les &#96;@media&#96;), &#96;combine-duplicated-selectors&#96; et &#96;discard-duplicates&#96; sur &#96;dist/*.css&#96;. Réduit la taille d&#39;environ 24% et produit une sortie byte-identique au CSS DSFR officiel.&#10;&#10;&#96;banner&#96; : insère un commentaire en tête du fichier (&#96;ADEME Design System — based on DSFR &lt;version&gt; (MIT)…&#96;)." aria-label="Aide postcss" tabindex="0">?</button></h3>
     ${t(fieldId('pc-enabled'), 'post-css.enabled', pc.enabled !== false, 'enabled (mqpacker + dedup)')}
     ${t(fieldId('pc-banner'),  'post-css.banner',  pc.banner !== false,  'banner ADEME en tête du fichier')}
+    ${$field('Banner-text', `<textarea id="${esc(fieldId('pc-banner-text'))}" name="${esc(fieldId('pc-banner-text'))}" data-path="post-css.banner-text" data-strip-empty rows="3" placeholder="(vide → 'ADEME Design System — based on DSFR <version> (MIT)…')">${esc(pc['banner-text'] ?? '')}</textarea>`, fieldId('pc-banner-text'), 'vide → texte par défaut',
+      'Texte du commentaire inséré en tête du CSS final (uniquement si `banner` est activé). Multi-lignes possible — PostCSS l\'enrobe automatiquement dans `/* … */`. Variables disponibles : aucune (le texte est utilisé tel quel) ; pour citer la version DSFR, écris-la en dur ou laisse vide pour bénéficier du défaut généré.')}
   `, { cliOnly: true, help:
 'Étapes appliquées après la compilation sass, sur le CSS final dans `dist/`.\n\nChaque sous-étape est opt-out via son toggle. Aucun effet sur la preview live.' });
 }
@@ -307,6 +309,16 @@ function setPath(obj, path, value) {
   cur[keys[keys.length - 1]] = value;
 }
 
+function deletePath(obj, path) {
+  const keys = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (cur[keys[i]] == null || typeof cur[keys[i]] !== 'object') return;
+    cur = cur[keys[i]];
+  }
+  delete cur[keys[keys.length - 1]];
+}
+
 function attachHandlers() {
   for (const el of document.querySelectorAll('[data-path]')) {
     const path = el.dataset.path;
@@ -314,7 +326,14 @@ function attachHandlers() {
       let v = el.type === 'checkbox' ? el.checked : el.value;
       // data-rem: wrap a numeric input value into "<n>rem" before storing.
       if (el.dataset.rem != null && typeof v === 'string' && v !== '') v = `${v}rem`;
-      setPath(state, path, v);
+      // data-strip-empty: empty string → unset the key, so YAML and the CLI
+      // consumer fall back on their default (the `??` chain in builder/index.js
+      // only treats null/undefined as "absent", not "").
+      if (el.dataset.stripEmpty != null && v === '') {
+        deletePath(state, path);
+      } else {
+        setPath(state, path, v);
+      }
       onStateChanged();
     });
   }
