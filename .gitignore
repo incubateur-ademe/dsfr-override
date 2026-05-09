@@ -13,5 +13,8 @@ builder-ui/dist/
 # Bundle prod GitHub Pages produit par `pnpm build:pages` (déployable)
 _site/
 
+# Output statique de `pnpm build-storybook` (déployable, pas tracké)
+storybook-static/
+
 alert-info*.png
 *.tmp.png
