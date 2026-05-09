@@ -354,17 +354,17 @@ const DSFR_SHADE_COMBOS = [
 ];
 
 function buildPreviewCss() {
-  // Cover :root, :root[data-fr-theme=light] AND :root[data-fr-theme=dark] in
-  // one selector. DSFR defines its combined-shade vars under both light and
-  // dark blocks, and the `[data-fr-theme=dark]` block has higher specificity
-  // than a plain `:root`, so our overrides need the same selector specificity
-  // to win — otherwise the dark hex (e.g. #907fff for sun-113-625) shadows
-  // our recomputed light value.
-  const lines = [':root, :root[data-fr-theme=light], :root[data-fr-theme=dark] {'];
-
+  // The combined shade vars (e.g. --blue-ate-sun-113-625) carry DIFFERENT
+  // values in light vs dark mode — the name encodes both grades:
+  // "sun-113-625" = sun-113 grade in light, 625 grade in dark.
+  // DSFR emits two blocks, light and dark; we mirror that exactly so the
+  // primary button is dark in light theme and light in dark theme as
+  // expected. We emit each block under all 3 selectors (:root, +light,
+  // +dark) plus an @media (prefers-color-scheme) wrap around the dark
+  // block, to beat both data-fr-theme switching and OS-default dark.
+  const familiesPalette = [];
   for (const [family, cfg] of Object.entries(state.colors ?? {})) {
     if (cfg.generation !== 'lch-remap' || !cfg.anchor?.hex) continue;
-    const renamed = cfg.rename || family;
     let palette;
     try {
       palette = computeFamilyPalette({
@@ -373,41 +373,69 @@ function buildPreviewCss() {
         addGrades: cfg['add-grades'] ?? {},
         semanticRemap: deriveSemanticRemap(family, cfg)
       });
-    } catch (e) { continue; }
-    const byName = Object.fromEntries(palette.map(e => [e.name, e.values]));
+    } catch { continue; }
+    familiesPalette.push({ family, renamed: cfg.rename || family, palette, byName: Object.fromEntries(palette.map(e => [e.name, e.values])) });
+  }
 
-    // Per-grade vars (some components read them directly).
-    for (const { name, values } of palette) {
-      lines.push(`  --${family}-${name}: ${values[0]};`);
-      if (renamed !== family) lines.push(`  --${renamed}-${name}: ${values[0]};`);
-    }
-
-    // Combined shade vars: this is what DSFR components actually consume in
-    // light mode. Without overriding these, the preview keeps the original
-    // hardcoded hex values from dsfr-ademe.css (built with the previous mapping).
-    for (const combo of DSFR_SHADE_COMBOS) {
-      const lightGrade = byName[combo.light];
-      if (!lightGrade) continue;
-      const def    = lightGrade[0];
-      const hover  = lightGrade[1] ?? def;
-      const active = lightGrade[2] ?? def;
-      for (const fam of (renamed !== family ? [family, renamed] : [family])) {
-        lines.push(`  --${fam}-${combo.name}: ${def};`);
-        lines.push(`  --${fam}-${combo.name}-hover: ${hover};`);
-        lines.push(`  --${fam}-${combo.name}-active: ${active};`);
+  // !important on every var so we beat DSFR's own @media (prefers-color-scheme:
+  // dark) block — when the OS is dark and data-fr-theme is "light", their
+  // media-query-scoped :root rule can still tie or out-specify ours via
+  // cascade ordering. !important is the simplest reliable lever here.
+  const IMP = ' !important';
+  const emitBlock = (mode /* 'light' | 'dark' */) => {
+    const out = [];
+    for (const { family, renamed, palette, byName } of familiesPalette) {
+      if (mode === 'light') {
+        for (const { name, values } of palette) {
+          out.push(`  --${family}-${name}: ${values[0]}${IMP};`);
+          if (renamed !== family) out.push(`  --${renamed}-${name}: ${values[0]}${IMP};`);
+        }
+      }
+      for (const combo of DSFR_SHADE_COMBOS) {
+        const grade = byName[mode === 'dark' ? combo.dark : combo.light];
+        if (!grade) continue;
+        const [def, hover = def, active = def] = grade;
+        for (const fam of (renamed !== family ? [family, renamed] : [family])) {
+          out.push(`  --${fam}-${combo.name}: ${def}${IMP};`);
+          out.push(`  --${fam}-${combo.name}-hover: ${hover}${IMP};`);
+          out.push(`  --${fam}-${combo.name}-active: ${active}${IMP};`);
+        }
       }
     }
-  }
+    return out;
+  };
 
-  // Shadow uses the canonical light/dark split so the user sees the right
-  // shadow when toggling the iframe theme.
-  lines.push('}');
+  const lightVars = emitBlock('light');
+  const darkVars  = emitBlock('dark');
+
+  const lines = [];
+  // Light defaults.
+  lines.push(':root, :root[data-fr-theme=light] {');
+  lines.push(...lightVars);
   if (state.elevation?.['shadow-color']?.light) {
-    lines.push(`:root, :root[data-fr-theme=light] { --shadow-color: ${state.elevation['shadow-color'].light}; }`);
+    lines.push(`  --shadow-color: ${state.elevation['shadow-color'].light}${IMP};`);
   }
+  lines.push('}');
+
+  // Dark explicit.
+  lines.push(':root[data-fr-theme=dark] {');
+  lines.push(...darkVars);
   if (state.elevation?.['shadow-color']?.dark) {
-    lines.push(`:root[data-fr-theme=dark] { --shadow-color: ${state.elevation['shadow-color'].dark}; }`);
+    lines.push(`  --shadow-color: ${state.elevation['shadow-color'].dark}${IMP};`);
   }
+  lines.push('}');
+
+  // Dark via OS preference, but only when data-fr-theme is NOT explicitly
+  // set to light. Without that guard we'd force dark even when the user
+  // forced light via the toolbar, which is the wrong answer.
+  lines.push('@media (prefers-color-scheme: dark) {');
+  lines.push('  :root:not([data-fr-theme=light]) {');
+  lines.push(...darkVars.map(l => '  ' + l));
+  if (state.elevation?.['shadow-color']?.dark) {
+    lines.push(`    --shadow-color: ${state.elevation['shadow-color'].dark}${IMP};`);
+  }
+  lines.push('  }');
+  lines.push('}');
 
   for (const t of state['border-radius']?.targets ?? []) {
     if (!t.selector || !t.value) continue;
