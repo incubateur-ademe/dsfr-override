@@ -239,6 +239,79 @@
         <li><button class="fr-btn fr-btn--secondary" data-fr-opened="false" aria-controls="fr-consent-modal" title="Personnaliser les cookies">Personnaliser</button></li>
       </ul>
     </div>
+
+    <dialog id="fr-consent-modal" class="fr-modal" role="dialog" aria-labelledby="fr-consent-modal-title">
+      <div class="fr-container fr-container--fluid fr-container-md">
+        <div class="fr-grid-row fr-grid-row--center">
+          <div class="fr-col-12 fr-col-md-10 fr-col-lg-8">
+            <div class="fr-modal__body">
+              <div class="fr-modal__header">
+                <button class="fr-btn--close fr-btn" aria-controls="fr-consent-modal" title="Fermer la fenêtre">Fermer</button>
+              </div>
+              <div class="fr-modal__content">
+                <h1 id="fr-consent-modal-title" class="fr-modal__title">Panneau de gestion des cookies</h1>
+                <div class="fr-consent-manager">
+                  <div class="fr-consent-service fr-consent-manager__header">
+                    <fieldset class="fr-fieldset" aria-labelledby="finality-all-legend" role="group">
+                      <legend id="finality-all-legend" class="fr-consent-service__title">Préférences pour tous les services</legend>
+                      <div class="fr-consent-service__radios">
+                        <div class="fr-radio-group">
+                          <input type="radio" id="consent-all-accept" name="consent-all">
+                          <label class="fr-label" for="consent-all-accept">Tout accepter</label>
+                        </div>
+                        <div class="fr-radio-group">
+                          <input type="radio" id="consent-all-refuse" name="consent-all">
+                          <label class="fr-label" for="consent-all-refuse">Tout refuser</label>
+                        </div>
+                      </div>
+                    </fieldset>
+                  </div>
+
+                  <div class="fr-consent-service">
+                    <fieldset class="fr-fieldset" aria-labelledby="finality-analytics-legend finality-analytics-desc" role="group">
+                      <legend id="finality-analytics-legend" class="fr-consent-service__title">Mesure d'audience</legend>
+                      <div class="fr-consent-service__radios">
+                        <div class="fr-radio-group">
+                          <input type="radio" id="consent-analytics-accept" name="consent-analytics">
+                          <label class="fr-label" for="consent-analytics-accept">Accepter</label>
+                        </div>
+                        <div class="fr-radio-group">
+                          <input type="radio" id="consent-analytics-refuse" name="consent-analytics">
+                          <label class="fr-label" for="consent-analytics-refuse">Refuser</label>
+                        </div>
+                      </div>
+                      <p id="finality-analytics-desc" class="fr-consent-service__desc">Cookies déposés pour mesurer la fréquentation du site et le comportement des visiteurs.</p>
+                    </fieldset>
+                  </div>
+
+                  <div class="fr-consent-service">
+                    <fieldset class="fr-fieldset" aria-labelledby="finality-perso-legend finality-perso-desc" role="group">
+                      <legend id="finality-perso-legend" class="fr-consent-service__title">Personnalisation</legend>
+                      <div class="fr-consent-service__radios">
+                        <div class="fr-radio-group">
+                          <input type="radio" id="consent-perso-accept" name="consent-perso">
+                          <label class="fr-label" for="consent-perso-accept">Accepter</label>
+                        </div>
+                        <div class="fr-radio-group">
+                          <input type="radio" id="consent-perso-refuse" name="consent-perso">
+                          <label class="fr-label" for="consent-perso-refuse">Refuser</label>
+                        </div>
+                      </div>
+                      <p id="finality-perso-desc" class="fr-consent-service__desc">Cookies utilisés pour mémoriser vos préférences (thème, langue, affichage).</p>
+                    </fieldset>
+                  </div>
+                </div>
+              </div>
+              <div class="fr-modal__footer">
+                <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline-reverse fr-btns-group--inline-lg fr-btns-group--icon-left">
+                  <li><button class="fr-btn">Confirmer mes choix</button></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </dialog>
   </section>
 
   <section class="ademe-section">
