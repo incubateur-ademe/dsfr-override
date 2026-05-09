@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="fr" data-fr-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DSFR ADEME — galerie exhaustive</title>
+  <link rel="stylesheet" href="/dist/dsfr-ademe.css">
+  <link rel="stylesheet" href="/dist/utility-ademe.css">
+  <script type="module" src="/dist/dsfr.module.min.js"></script>
+  <style>
+    body { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
+    .gal-section { margin-block: 2.5rem; }
+    .gal-section > h2 { margin-bottom: 0.5rem; }
+    .gal-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
+    .gal-row > * { min-width: 0; }
+    .gal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Galerie exhaustive — composants DSFR avec mapping ADEME</h1>
+  <p class="fr-text--lead">Toutes les variantes courantes des composants DSFR. Chaque modification du builder-ui (palette, radius, ombres) est reflétée ici comme dans la page témoin.</p>
+
+  <section class="gal-section">
+    <h2>Tags</h2>
+    <div class="gal-row">
+      <p class="fr-tag">Tag</p>
+      <p class="fr-tag fr-tag--sm">Tag sm</p>
+      <button class="fr-tag" aria-pressed="false">Tag bouton</button>
+      <button class="fr-tag fr-tag--dismiss">Tag dismiss</button>
+    </div>
+    <div class="gal-row">
+      <p class="fr-tag fr-tag--green-emeraude">green-emeraude</p>
+      <p class="fr-tag fr-tag--blue-cumulus">blue-cumulus</p>
+      <p class="fr-tag fr-tag--purple-glycine">purple-glycine</p>
+      <p class="fr-tag fr-tag--brown-caramel">brown-caramel</p>
+      <p class="fr-tag fr-tag--pink-tuile">pink-tuile</p>
+    </div>
+  </section>
+
+  <section class="gal-section">
+    <h2>Badges</h2>
+    <div class="gal-row">
+      <p class="fr-badge">Default</p>
+      <p class="fr-badge fr-badge--info">Info</p>
+      <p class="fr-badge fr-badge--success">Succès</p>
+      <p class="fr-badge fr-badge--warning">Attention</p>
+      <p class="fr-badge fr-badge--error">Erreur</p>
+      <p class="fr-badge fr-badge--new">Nouveau</p>
+    </div>
+    <div class="gal-row">
+      <p class="fr-badge fr-badge--sm">Default sm</p>
+      <p class="fr-badge fr-badge--sm fr-badge--info">Info sm</p>
+      <p class="fr-badge fr-badge--sm fr-badge--success">Succès sm</p>
+    </div>
+  </section>
+
+  <section class="gal-section">
+    <h2>Boutons</h2>
+    <div class="gal-row">
+      <button class="fr-btn">Primary</button>
+      <button class="fr-btn fr-btn--secondary">Secondary</button>
+      <button class="fr-btn fr-btn--tertiary">Tertiary</button>
+      <button class="fr-btn fr-btn--tertiary-no-outline">Tertiary no outline</button>
+      <button class="fr-btn" disabled>Disabled</button>
+    </div>
+    <div class="gal-row">
+      <button class="fr-btn fr-btn--sm">Small</button>
+      <button class="fr-btn">Medium</button>
+      <button class="fr-btn fr-btn--lg">Large</button>
+    </div>
+    <div class="gal-row">
+      <button class="fr-btn fr-icon-arrow-right-line fr-btn--icon-right">Avec icône</button>
+      <button class="fr-btn fr-btn--secondary fr-icon-checkbox-circle-line fr-btn--icon-left">Valider</button>
+    </div>
+  </section>
+
+  <section class="gal-section">
+    <h2>Inputs</h2>
+    <div class="fr-grid-row fr-grid-row--gutters">
+      <div class="fr-col-12 fr-col-md-6">
+        <div class="fr-input-group">
+          <label class="fr-label" for="g-name">Nom</label>
+          <input class="fr-input" type="text" id="g-name" placeholder="Saisissez">
+        </div>
+        <div class="fr-input-group fr-input-group--error fr-mt-2w">
+          <label class="fr-label" for="g-err">En erreur</label>
+          <input class="fr-input" type="text" id="g-err" value="Mauvaise valeur">
+          <p class="fr-error-text">Format attendu : ABC123</p>
+        </div>
+      </div>
+      <div class="fr-col-12 fr-col-md-6">
+        <div class="fr-input-group fr-input-group--valid">
+          <label class="fr-label" for="g-ok">Valide</label>
+          <input class="fr-input" type="text" id="g-ok" value="Valeur correcte">
+          <p class="fr-valid-text">Validé</p>
+        </div>
+        <div class="fr-select-group fr-mt-2w">
+          <label class="fr-label" for="g-select">Sélection</label>
+          <select class="fr-select" id="g-select">
+            <option value="">— Sélectionnez —</option>
+            <option>Option A</option>
+          </select>
+        </div>
+        <div class="fr-input-wrap fr-input-wrap--addon fr-mt-2w">
+          <input class="fr-input" type="text" placeholder="Saisissez puis envoyez">
+          <button class="fr-btn">Envoyer</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gal-section">
+    <h2>Alertes</h2>
+    <div class="fr-alert fr-alert--info fr-mb-2w">
+      <h3 class="fr-alert__title">Information</h3>
+      <p>Texte informatif.</p>
+    </div>
+    <div class="fr-alert fr-alert--success fr-mb-2w">
+      <h3 class="fr-alert__title">Succès</h3>
+      <p>Opération réussie.</p>
+    </div>
+    <div class="fr-alert fr-alert--warning fr-mb-2w">
+      <h3 class="fr-alert__title">Attention</h3>
+      <p>Vigilance requise.</p>
+    </div>
+    <div class="fr-alert fr-alert--error fr-mb-2w">
+      <h3 class="fr-alert__title">Erreur</h3>
+      <p>Action impossible.</p>
+    </div>
+    <div class="fr-alert fr-alert--info fr-alert--sm">
+      <p>Alerte petite (sm) — sans titre.</p>
+    </div>
+  </section>
+
+  <section class="gal-section">
+    <h2>Cards</h2>
+    <div class="gal-grid">
+      <div class="fr-card">
+        <div class="fr-card__body"><div class="fr-card__content">
+          <h3 class="fr-card__title"><a href="#">Card par défaut</a></h3>
+          <p class="fr-card__desc">Border-radius + box-shadow inset (card-fix).</p>
+        </div></div>
+      </div>
+      <div class="fr-card fr-card--shadow">
+        <div class="fr-card__body"><div class="fr-card__content">
+          <h3 class="fr-card__title"><a href="#">Card avec shadow</a></h3>
+          <p class="fr-card__desc">Variante shadow utilise --shadow-color.</p>
+        </div></div>
+      </div>
+      <div class="fr-card fr-card--no-border">
+        <div class="fr-card__body"><div class="fr-card__content">
+          <h3 class="fr-card__title"><a href="#">Card sans bordure</a></h3>
+          <p class="fr-card__desc">Variante --no-border, exclue du card-fix.</p>
+        </div></div>
+      </div>
+      <div class="fr-card fr-card--horizontal">
+        <div class="fr-card__body"><div class="fr-card__content">
+          <h3 class="fr-card__title"><a href="#">Card horizontale</a></h3>
+          <p class="fr-card__desc">Layout horizontal pour listes.</p>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gal-section">
+    <h2>Accordion</h2>
+    <div class="fr-accordions-group">
+      <section class="fr-accordion">
+        <h3 class="fr-accordion__title"><button type="button" class="fr-accordion__btn" aria-expanded="false" aria-controls="acc-1">Première section</button></h3>
+        <div class="fr-collapse" id="acc-1"><p>Contenu replié par défaut.</p></div>
+      </section>
+      <section class="fr-accordion">
+        <h3 class="fr-accordion__title"><button type="button" class="fr-accordion__btn" aria-expanded="true" aria-controls="acc-2">Section ouverte</button></h3>
+        <div class="fr-collapse" id="acc-2"><p>Contenu visible. Le JS DSFR gère les transitions et l'aria.</p></div>
+      </section>
+    </div>
+  </section>
+
+  <section class="gal-section">
+    <h2>Breadcrumb</h2>
+    <nav role="navigation" class="fr-breadcrumb" aria-label="Vous êtes ici :">
+      <button class="fr-breadcrumb__button" aria-expanded="false" aria-controls="breadcrumb-1">Voir le fil d'Ariane</button>
+      <div class="fr-collapse" id="breadcrumb-1">
+        <ol class="fr-breadcrumb__list">
+          <li><a class="fr-breadcrumb__link" href="#">Accueil</a></li>
+          <li><a class="fr-breadcrumb__link" href="#">Section</a></li>
+          <li><a class="fr-breadcrumb__link" aria-current="page">Page courante</a></li>
+        </ol>
+      </div>
+    </nav>
+  </section>
+
+  <section class="gal-section">
+    <h2>Tabs</h2>
+    <div class="fr-tabs">
+      <ul class="fr-tabs__list" role="tablist" aria-label="Tabs">
+        <li role="presentation"><button id="tab-1" class="fr-tabs__tab" tabindex="0" role="tab" aria-selected="true" aria-controls="tabpanel-1">Onglet 1</button></li>
+        <li role="presentation"><button id="tab-2" class="fr-tabs__tab" tabindex="-1" role="tab" aria-selected="false" aria-controls="tabpanel-2">Onglet 2</button></li>
+        <li role="presentation"><button id="tab-3" class="fr-tabs__tab" tabindex="-1" role="tab" aria-selected="false" aria-controls="tabpanel-3">Onglet 3</button></li>
+      </ul>
+      <div id="tabpanel-1" class="fr-tabs__panel fr-tabs__panel--selected" role="tabpanel" aria-labelledby="tab-1" tabindex="0">Contenu de l'onglet 1.</div>
+      <div id="tabpanel-2" class="fr-tabs__panel" role="tabpanel" aria-labelledby="tab-2" tabindex="0">Contenu 2.</div>
+      <div id="tabpanel-3" class="fr-tabs__panel" role="tabpanel" aria-labelledby="tab-3" tabindex="0">Contenu 3.</div>
+    </div>
+  </section>
+
+  <section class="gal-section">
+    <h2>Notice</h2>
+    <div class="fr-notice fr-notice--info">
+      <div class="fr-container">
+        <div class="fr-notice__body">
+          <p class="fr-notice__title">Maintenance prévue le 12/12 entre 22h et 23h.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gal-section">
+    <h2>Callout</h2>
+    <div class="fr-callout">
+      <h3 class="fr-callout__title">Mise en avant</h3>
+      <p class="fr-callout__text">Texte de mise en avant pour attirer l'attention sur un point important.</p>
+      <button class="fr-btn">En savoir plus</button>
+    </div>
+  </section>
+
+  <section class="gal-section">
+    <h2>Highlight &amp; Quote</h2>
+    <div class="fr-highlight">
+      <p>Une citation mise en évidence avec une bordure latérale colorée.</p>
+    </div>
+    <figure class="fr-quote fr-mt-3w">
+      <blockquote><p>Une vraie citation, avec auteur et source.</p></blockquote>
+      <figcaption>
+        <p class="fr-quote__author">Auteur</p>
+        <ul class="fr-quote__source"><li><cite>Source de la citation</cite></li></ul>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section class="gal-section">
+    <h2>Pagination</h2>
+    <nav role="navigation" class="fr-pagination" aria-label="Pagination">
+      <ul class="fr-pagination__list">
+        <li><a class="fr-pagination__link fr-pagination__link--first" aria-disabled="true">Première page</a></li>
+        <li><a class="fr-pagination__link fr-pagination__link--prev" aria-disabled="true">Page précédente</a></li>
+        <li><a class="fr-pagination__link" aria-current="page" title="Page 1">1</a></li>
+        <li><a class="fr-pagination__link" href="#" title="Page 2">2</a></li>
+        <li><a class="fr-pagination__link" href="#" title="Page 3">3</a></li>
+        <li><a class="fr-pagination__link fr-pagination__link--next" href="#">Page suivante</a></li>
+        <li><a class="fr-pagination__link fr-pagination__link--last" href="#">Dernière page</a></li>
+      </ul>
+    </nav>
+  </section>
+
+  <section class="gal-section">
+    <h2>Toggle &amp; Stepper</h2>
+    <div class="fr-toggle">
+      <input type="checkbox" class="fr-toggle__input" id="toggle-1">
+      <label class="fr-toggle__label" for="toggle-1" data-fr-checked-label="Activé" data-fr-unchecked-label="Désactivé">Activer la fonctionnalité</label>
+    </div>
+    <div class="fr-stepper fr-mt-3w">
+      <h2 class="fr-stepper__title">Titre de l'étape<span class="fr-stepper__state">Étape 2 sur 4</span></h2>
+      <div class="fr-stepper__steps" data-fr-current-step="2" data-fr-steps="4"></div>
+      <p class="fr-stepper__details"><span class="fr-text--bold">Étape suivante :</span> intitulé de la suivante</p>
+    </div>
+  </section>
+</body>
+</html>

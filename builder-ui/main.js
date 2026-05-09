@@ -1,5 +1,6 @@
 import { parse, stringify } from 'yaml';
 import { computeFamilyPalette } from 'ademe-palette';
+import { contrastRatio } from 'ademe-lch';
 
 // =============================================================================
 // State : single source of truth, mirrors mapping.yml schema
@@ -308,6 +309,7 @@ function onStateChanged() {
   document.getElementById('yaml-editor').value = stringify(state, { lineWidth: 0 });
   setYamlStatus('ok', 'à jour');
   applyPreview();
+  if (previewMode === 'palette') renderPaletteView();
 }
 
 function setYamlStatus(kind, msg) {
@@ -352,7 +354,13 @@ const DSFR_SHADE_COMBOS = [
 ];
 
 function buildPreviewCss() {
-  const lines = [':root {'];
+  // Cover :root, :root[data-fr-theme=light] AND :root[data-fr-theme=dark] in
+  // one selector. DSFR defines its combined-shade vars under both light and
+  // dark blocks, and the `[data-fr-theme=dark]` block has higher specificity
+  // than a plain `:root`, so our overrides need the same selector specificity
+  // to win — otherwise the dark hex (e.g. #907fff for sun-113-625) shadows
+  // our recomputed light value.
+  const lines = [':root, :root[data-fr-theme=light], :root[data-fr-theme=dark] {'];
 
   for (const [family, cfg] of Object.entries(state.colors ?? {})) {
     if (cfg.generation !== 'lch-remap' || !cfg.anchor?.hex) continue;
@@ -391,10 +399,12 @@ function buildPreviewCss() {
     }
   }
 
-  if (state.elevation?.['shadow-color']?.light) {
-    lines.push(`  --shadow-color: ${state.elevation['shadow-color'].light};`);
-  }
+  // Shadow uses the canonical light/dark split so the user sees the right
+  // shadow when toggling the iframe theme.
   lines.push('}');
+  if (state.elevation?.['shadow-color']?.light) {
+    lines.push(`:root, :root[data-fr-theme=light] { --shadow-color: ${state.elevation['shadow-color'].light}; }`);
+  }
   if (state.elevation?.['shadow-color']?.dark) {
     lines.push(`:root[data-fr-theme=dark] { --shadow-color: ${state.elevation['shadow-color'].dark}; }`);
   }
@@ -424,6 +434,115 @@ function deriveSemanticRemap(family, cfg) {
 function applyAll() {
   document.getElementById('yaml-editor').value = stringify(state, { lineWidth: 0 });
   applyPreview();
+}
+
+// =============================================================================
+// Preview mode toggle: example | gallery | palette
+// =============================================================================
+
+const PREVIEW_SOURCES = {
+  example: '/example/index.html',
+  gallery: '/builder-ui/gallery.html'
+};
+let previewMode = 'example';
+
+function setPreviewMode(mode) {
+  previewMode = mode;
+  const iframe = document.getElementById('preview-frame');
+  const palette = document.getElementById('palette-view');
+  for (const btn of document.querySelectorAll('.preview__bar button')) {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  }
+  if (mode === 'palette') {
+    iframe.hidden = true;
+    palette.hidden = false;
+    renderPaletteView();
+  } else {
+    iframe.hidden = false;
+    palette.hidden = true;
+    const target = PREVIEW_SOURCES[mode];
+    if (target && iframe.getAttribute('src') !== target) {
+      iframe.setAttribute('src', target);
+    } else {
+      applyPreview();
+    }
+  }
+}
+
+function attachPreviewToggle() {
+  for (const btn of document.querySelectorAll('.preview__bar button')) {
+    btn.addEventListener('click', () => setPreviewMode(btn.dataset.mode));
+  }
+}
+
+// =============================================================================
+// Palette LCh visual view — grid of swatches per family with WCAG ratios.
+// Recomputes from state on every change. Pure DOM (no iframe).
+// =============================================================================
+
+function wcagBadge(hex, against, label) {
+  const r = contrastRatio(hex, against);
+  let cls = 'fail';
+  if (r >= 7) cls = 'aaa';
+  else if (r >= 4.5) cls = 'aa';
+  return `<span class="${cls}">${label} ${r.toFixed(2)}</span>`;
+}
+
+function renderPaletteView() {
+  const view = document.getElementById('palette-view');
+  if (!view || view.hidden) return;
+  const blocks = [];
+  for (const [family, cfg] of Object.entries(state.colors ?? {})) {
+    if (cfg.generation !== 'lch-remap' || !cfg.anchor?.hex) continue;
+    let palette;
+    try {
+      palette = computeFamilyPalette({
+        anchor: cfg.anchor.hex,
+        recalibrate: cfg['recalibrate-grade'] ?? {},
+        addGrades: cfg['add-grades'] ?? {},
+        semanticRemap: deriveSemanticRemap(family, cfg)
+      });
+    } catch { continue; }
+
+    // Show only the canonical 11 grades in expected visual order — skip the
+    // alias entries pushed by recalibrate (e.g. main-525 alias of main-444).
+    const order = ['75', '100', '125', '200', 'sun-157', 'main-', '625', '850', '925', '950', '975'];
+    const byName = Object.fromEntries(palette.map(e => [e.name, e]));
+    const canonical = [];
+    for (const key of order) {
+      if (key === 'main-') {
+        const m = palette.find(e => e.name.startsWith('main-'));
+        if (m) canonical.push(m);
+      } else if (byName[key]) {
+        canonical.push(byName[key]);
+      }
+    }
+
+    const cells = canonical.map(({ name, values }) => {
+      const def = values[0];
+      const luminance = (parseInt(def.slice(1, 3), 16) + parseInt(def.slice(3, 5), 16) + parseInt(def.slice(5, 7), 16)) / 3;
+      const fg = luminance > 128 ? '#161616' : '#ffffff';
+      return `<div class="pal-swatch" style="background:${esc(def)};color:${fg}">
+        <div class="pal-swatch__grade">${esc(name)}</div>
+        <div class="pal-swatch__hex">${esc(def)}</div>
+      </div>`;
+    }).join('');
+
+    // WCAG check on the 3 critical grades for accessibility (sun, main, 625)
+    const sun = palette.find(e => e.name.startsWith('sun-'));
+    const main = palette.find(e => e.name.startsWith('main-'));
+    const g625 = byName['625'];
+    const wcagLines = [];
+    if (sun)  wcagLines.push(`<div class="pal-wcag"><strong>${esc(sun.name)}</strong> ${esc(sun.values[0])} ${wcagBadge(sun.values[0], '#ffffff', 'sur blanc')}${wcagBadge(sun.values[0], '#1e1e1e', 'sur sombre')}</div>`);
+    if (main) wcagLines.push(`<div class="pal-wcag"><strong>${esc(main.name)}</strong> ${esc(main.values[0])} ${wcagBadge(main.values[0], '#ffffff', 'sur blanc')}${wcagBadge(main.values[0], '#1e1e1e', 'sur sombre')}</div>`);
+    if (g625) wcagLines.push(`<div class="pal-wcag"><strong>625</strong> ${esc(g625.values[0])} ${wcagBadge(g625.values[0], '#ffffff', 'sur blanc')}${wcagBadge(g625.values[0], '#1e1e1e', 'sur sombre')}</div>`);
+
+    const renamed = cfg.rename || family;
+    blocks.push(`<h3>${esc(family)}${renamed !== family ? ` → <code>${esc(renamed)}</code>` : ''} <span class="lch-meta">anchor ${esc(cfg.anchor.hex)}</span></h3>
+      <div class="pal-grid">${cells}</div>
+      ${wcagLines.join('')}`);
+  }
+  view.innerHTML = blocks.join('') || '<p style="color:#666">Aucune famille avec generation: lch-remap</p>';
 }
 
 // =============================================================================
@@ -505,5 +624,6 @@ iframe.addEventListener('load', () => applyPreview());
 renderAll();
 attachYamlHandler();
 attachTopbar();
+attachPreviewToggle();
 document.getElementById('yaml-editor').value = stringify(state, { lineWidth: 0 });
 setYamlStatus('ok', 'défaut chargé');

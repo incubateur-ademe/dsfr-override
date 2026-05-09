@@ -33,7 +33,14 @@
     </aside>
 
     <section class="preview" aria-label="Aperçu">
+      <div class="preview__bar">
+        <span style="font-weight: 600">Preview :</span>
+        <button data-mode="example" class="active">Témoin</button>
+        <button data-mode="gallery">Galerie</button>
+        <button data-mode="palette">Palette LCh</button>
+      </div>
       <iframe id="preview-frame" src="/example/index.html" title="Aperçu"></iframe>
+      <div id="palette-view" class="palette-view" hidden></div>
     </section>
 
     <aside class="yaml" aria-label="YAML brut">
