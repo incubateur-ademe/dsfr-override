@@ -43,12 +43,12 @@ icons:
 Format `add` accepté :
 
 - **String** : `flame` → token et nom Lucide identiques (`.fr-icon-flame`, `flame.svg`)
-- **Objet `{token, name}`** : `{ token: 'ademe-pin', name: 'map-pin' }` → classe `.fr-icon-ademe-pin` qui charge `lucide map-pin.svg`. Utile quand tu veux un nom métier qui ne match pas le nom Lucide.
+- **Objet `{token, name}`** : `{ token: 'ademe-pin', name: 'map-pin' }` → classe `.fr-icon-ademe-pin` qui charge `lucide map-pin.svg`. Utile pour un nom métier qui ne match pas le nom Lucide.
 
 ## Garde-fous
 
 - **Nom DSFR inconnu** dans `overrides` → erreur au build (`'fr--xxx' is not an existing DSFR icon`). Pas de typo silencieuse qui produirait un mask-image-404.
-- **Nom Lucide inconnu** dans `overrides` ou `add` → erreur idem (`lucide icon 'xxx' not found`). Cherche sur [lucide.dev/icons](https://lucide.dev/icons/).
+- **Nom Lucide inconnu** dans `overrides` ou `add` → erreur idem (`lucide icon 'xxx' not found`). La liste complète est consultable sur [lucide.dev/icons](https://lucide.dev/icons/).
 
 ## Caveat visuel : stroke vs fill
 

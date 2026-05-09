@@ -14,7 +14,7 @@ Sous le capot, `pnpm storybook` enchaîne deux choses :
 1. `pnpm build` à la racine — assure que `dist/dsfr-ademe.css` et `dist/utility-ademe.css` sont à jour (~10s, instantané si rien n'a changé côté builder).
 2. `pnpm --filter dsfr-override-storybook storybook` — lance `storybook dev` depuis le sous-workspace. Premier démarrage ~30s le temps que vite optimise les deps ; les suivants ~5s.
 
-Si tu modifies seulement `mapping.yml` ou un fichier dans `overrides/`, relance `pnpm build` à part puis hard-reload Storybook (`cmd+shift+R`). Pas besoin de relancer `pnpm storybook` complet.
+Pour une modification limitée à `mapping.yml` ou à un fichier dans `overrides/`, relancer `pnpm build` à part puis hard-reload Storybook (`cmd+shift+R`) suffit. Pas besoin de relancer `pnpm storybook` complet.
 
 ## Architecture
 
