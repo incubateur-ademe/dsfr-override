@@ -45,6 +45,22 @@ Sortie dans `dist/` :
 
 `--minify` et `--sourcemap` sont des flags CLI réservés au build (release / CI). Ils n'ont pas d'équivalent dans `mapping.yml` : ce sont des décisions opérationnelles, pas des décisions de design system. La section `post-css:` du mapping contrôle uniquement les passes appliquées en mode normal (mqpacker + dedup + banner) ; elles s'enchaînent automatiquement en mode `--minify`.
 
+## Cibles de build (`--target`)
+
+| Cible | Status | Sortie | Quand l'utiliser |
+|---|---|---|---|
+| `bundle` (default) | implémenté | `dist/dsfr-ademe.css` (~700 KB) + `utility-ademe.css` | Drop-in pour remplacer le DSFR upstream (apps non-React, ou React qui n'utilise pas `react-dsfr`). |
+| `overlay` | implémenté | `dist/ademe-overlay.css` (~74 KB) | Surcouche fine à charger après le DSFR shippé par `react-dsfr` (Next, Vite, CRA). Pas de rename de préfixes possible. |
+| `forked` | préplan | `dist/react-dsfr/` (package npm) | Quand la neutralisation complète des tokens (`blue-ate` partout, types régénérés, Header/Footer retirés) est non-négociable. |
+
+```sh
+pnpm build                       # bundle (default)
+pnpm build --target=overlay      # overlay
+pnpm build --target=forked       # erreur explicite (non implémenté)
+```
+
+Comparatif détaillé (taille, compatibilité MUI/charts, rename, effort upgrade, surface de maintenance) : voir `docs/react-dsfr-integration.md`.
+
 ## Vérifier visuellement
 
 | Quand | Outil | Démarrage | URL |
@@ -72,6 +88,7 @@ Un fork direct (= patcher la source DSFR) crée un coût d'upgrade énorme : à 
 
 - `CLAUDE.md` — contexte projet pour assistant IA
 - `docs/architecture.md` — spec architecturale détaillée (pipeline, profil LCh, schéma `mapping.yml`)
+- `docs/react-dsfr-integration.md` — modes d'intégration (bundle / overlay / forked) avec comparatif et préplan
 - `docs/builder-ui.md` — UI web pour éditer mapping.yml en live
 - `docs/storybook.md` — comment le storybook est câblé sur le submodule DSFR
 - `docs/example.md` — page témoin et serveur statique

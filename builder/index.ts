@@ -4,8 +4,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { argv, exit, stderr, stdout } from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { parseArgs as nodeParseArgs } from 'node:util';
 import { load as parseYaml } from 'js-yaml';
 import { compile } from './build/compile.js';
+import { buildOverlay } from './build/overlay.js';
 import { postProcess } from './build/post-process.js';
 import { defaultBanner, postcssProcess } from './build/postcss-process.js';
 import { prepare } from './build/prepare.js';
@@ -48,11 +50,20 @@ ${c('bold', 'Commands:')}
 
 ${c('bold', 'Options:')}
   --mapping <path>   Path to mapping file (default: mapping.yml)
+  --target <mode>    Build target: bundle (default) | overlay | forked
   --minify           Also emit dist/*.min.css (cssnano)
   --sourcemap        Emit dist/*.css.map and link via sourceMappingURL
   --strict           Treat warnings as errors
   -h, --help         Show this help
+
+${c('bold', 'Targets:')}
+  ${c('cyan', 'bundle')}   (default) Full DSFR bundle with ADEME overrides — replace dsfr.min.css upstream.
+  ${c('cyan', 'overlay')}  Slim CSS overlay (palette + decisions + custom rules) to load on top of
+            the upstream DSFR shipped by react-dsfr. Disables \`post-process.rename\`.
+  ${c('cyan', 'forked')}   (planned) Fork react-dsfr in a submodule and override its build pipeline.
 `;
+
+type BuildTarget = 'bundle' | 'overlay' | 'forked';
 
 interface CliOpts {
   strict: boolean;
@@ -61,25 +72,57 @@ interface CliOpts {
   minify: boolean;
   sourcemap: boolean;
   help: boolean;
+  target: BuildTarget;
 }
 
+const BUILD_TARGETS = ['bundle', 'overlay', 'forked'] as const;
+
 function parseArgs(args: string[]): { opts: CliOpts; rest: string[] } {
-  const opts: CliOpts = { strict: false, mapping: 'mapping.yml', update: false, minify: false, sourcemap: false, help: false };
-  const rest: string[] = [];
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i];
-    if (a === '-h' || a === '--help') opts.help = true;
-    else if (a === '--strict') opts.strict = true;
-    else if (a === '--update') opts.update = true;
-    else if (a === '--minify') opts.minify = true;
-    else if (a === '--sourcemap') opts.sourcemap = true;
-    else if (a === '--mapping') {
-      const next = args[++i];
-      if (next !== undefined) opts.mapping = next;
-    }
-    else if (a !== undefined) rest.push(a);
+  // `node:util` parseArgs (Node ≥ 18.3, stable depuis Node 20) supporte
+  // nativement `--flag value`, `--flag=value`, les boolean flags et les
+  // shorts. Pas besoin d'une dep tierce sur ce projet.
+  const parsed = nodeParseArgs({
+    args,
+    options: {
+      help:       { type: 'boolean', short: 'h' },
+      strict:     { type: 'boolean' },
+      update:     { type: 'boolean' },
+      minify:     { type: 'boolean' },
+      sourcemap:  { type: 'boolean' },
+      mapping:    { type: 'string', default: 'mapping.yml' },
+      target:     { type: 'string', default: 'bundle' }
+    },
+    allowPositionals: true,
+    strict: false
+  });
+
+  const target = stringValue(parsed.values.target, 'bundle');
+  if (!isBuildTarget(target)) {
+    throw new Error(`unknown --target value: ${target} (expected: ${BUILD_TARGETS.join(' | ')})`);
   }
-  return { opts, rest };
+
+  const opts: CliOpts = {
+    strict:    parsed.values.strict === true,
+    update:    parsed.values.update === true,
+    minify:    parsed.values.minify === true,
+    sourcemap: parsed.values.sourcemap === true,
+    help:      parsed.values.help === true,
+    mapping:   stringValue(parsed.values.mapping, 'mapping.yml'),
+    target
+  };
+  return { opts, rest: parsed.positionals };
+}
+
+function isBuildTarget(value: string): value is BuildTarget {
+  return (BUILD_TARGETS as readonly string[]).includes(value);
+}
+
+// `parseArgs` avec `strict: false` typage `string | boolean | undefined` même
+// pour les options déclarées `type: 'string'` (parce que `strict: false`
+// laisse passer des shapes inattendues). On narrow ici pour garder un typage
+// précis côté CliOpts.
+function stringValue(v: string | boolean | undefined, fallback: string): string {
+  return typeof v === 'string' ? v : fallback;
 }
 
 function logInfo(msg: string): void { stderr.write(c('dim', '· ') + msg + '\n'); }
@@ -88,6 +131,28 @@ function logWarn(msg: string): void { stderr.write(c('yellow', '⚠ ') + msg + '
 function logErr(msg: string): void { stderr.write(c('red', '✗ ') + msg + '\n'); }
 
 async function runBuild(opts: CliOpts): Promise<void> {
+  switch (opts.target) {
+    case 'bundle':  await runBuildBundle(opts); return;
+    case 'overlay': await runBuildOverlay(opts); return;
+    case 'forked':  throw new Error('--target=forked not implemented yet (planned: submodule react-dsfr fork — see docs/react-dsfr-integration.md)');
+  }
+}
+
+async function runBuildOverlay(opts: CliOpts): Promise<void> {
+  const t0 = Date.now();
+  logInfo('overlay: building slim overlay (rename disabled, components.remove ignored)');
+  const result = await buildOverlay({ projectRoot: PROJECT_ROOT, minify: opts.minify });
+  if (!result.workspaceClean) {
+    logWarn(`dsfr/ working tree is dirty after build:\n${result.workspaceDirty}`);
+  }
+  logInfo(`overlay: ${result.rootBlocks} :root block(s), ${result.fontFaceBlocks} @font-face`);
+  const min = result.minOutFile ? `, ${result.minOutFile}` : '';
+  const kb = (result.bytes / 1024).toFixed(1);
+  logOk(`overlay: ${result.outFile} (${kb} KB)${min}`);
+  logOk(`build complete (${Date.now() - t0}ms)`);
+}
+
+async function runBuildBundle(opts: CliOpts): Promise<void> {
   const t0 = Date.now();
   logInfo('preparing entry');
   const input = prepare({ projectRoot: PROJECT_ROOT });
@@ -266,9 +331,10 @@ async function main(): Promise<void> {
   }
 
   const [command, ...args] = raw;
-  const { opts } = parseArgs(args);
 
   try {
+    const { opts } = parseArgs(args);
+
     switch (command) {
       case 'build':    await runBuild(opts); exit(0);
       case 'generate': runGenerate(); exit(0);

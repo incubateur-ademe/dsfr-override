@@ -227,6 +227,13 @@ export interface PrepareOpts {
   mappingPath?: string;
   overridesIndex?: string;
   distDir?: string;
+  /**
+   * Mapping injecté qui court-circuite la lecture de `mappingPath`. Sert au
+   * mode overlay qui patche le mapping (rename désactivé, components.remove
+   * vidé) avant d'appeler `prepare()`. Si non fourni, `prepare()` parse
+   * `mappingPath` du disque comme avant.
+   */
+  mapping?: Mapping | null;
 }
 
 export interface CompileOpts {

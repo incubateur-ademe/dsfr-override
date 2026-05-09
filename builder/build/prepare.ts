@@ -41,9 +41,11 @@ export function prepare(opts: PrepareOpts): PrepareInput {
 
   if (!existsSync(distDir)) mkdirSync(distDir, { recursive: true });
 
-  const mapping: Mapping | null = existsSync(mappingPath)
-    ? (parseYaml(readFileSync(mappingPath, 'utf8')) as Mapping | null)
-    : null;
+  const mapping: Mapping | null = opts.mapping !== undefined
+    ? opts.mapping
+    : (existsSync(mappingPath)
+      ? (parseYaml(readFileSync(mappingPath, 'utf8')) as Mapping | null)
+      : null);
 
   generateOverrides({ projectRoot, mapping, distDir });
 
