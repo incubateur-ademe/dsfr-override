@@ -61,7 +61,7 @@ pnpm build --minify
 
 **Storybook** : 322 stories DSFR + 57 docs pages avec switcher light/dark et viewports. Stories pioché dans le submodule pristine (zéro copie). Voir `docs/storybook.md`.
 
-**Builder UI** (`http://localhost:8765/builder-ui/index.html`) : éditeur visuel du `mapping.yml`. Layout 3 colonnes (réglages | preview live | YAML brut), sync bidirectionnel UI ↔ YAML, palette LCh recalculée côté client en temps réel quand on bouge un anchor. Export du `mapping.yml` final, le build CLI reste un `pnpm build` après coup. Voir `docs/builder-ui.md`.
+**Builder UI** (`http://localhost:8080/builder-ui/index.html`) : éditeur visuel du `mapping.yml`. Layout 3 colonnes (réglages | preview live | YAML brut), sync bidirectionnel UI ↔ YAML, palette LCh recalculée côté client en temps réel quand on bouge un anchor. La page témoin de la preview reflète live le rename des familles, la fonte CSS et le thème (auto/light/dark, sync bidirectionnel). Export du `mapping.yml` final, le build CLI reste un `pnpm build` après coup. Voir `docs/builder-ui.md`.
 
 ## Pourquoi pas un fork direct du DSFR ?
 

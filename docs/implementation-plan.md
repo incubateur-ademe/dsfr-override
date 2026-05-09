@@ -74,7 +74,7 @@ Raison de la bascule : Sass ne route **pas** les imports relatifs (`@use 'option
 
 `build/filter-components.js` strip les `@import` des composants exclus dans `component/{main,legacy,print}.scss` du workspace. Pour DSFR v1.14.4, **aucun** composant non-exemple ne référence header/footer dans son `style:` block, donc le strip suffit — pas besoin de patcher d'autres `.package.yml` comme prévu initialement.
 
-`overrides/_card-fix.scss` est un fichier user-curated tracké (pas généré) ; il est référencé via `manual-overrides:` du mapping et `@import` en absolu dans `_index.scss`.
+`overrides/_card-fix.scss` et `overrides/_alert-fix.scss` sont des fichiers user-curated trackés (pas générés) ; référencés via `manual-overrides:` du mapping et `@import` en absolu dans `_index.scss`. `_alert-fix.scss` redessine la barre 40 px gauche de `.fr-alert` en `box-shadow: inset` pour qu'elle respecte `border-radius` (les linear-gradients DSFR ne se clippent pas avec `background-clip: border-box`). Le pattern peut être étendu à `.fr-callout` (gradient 4 px gauche) si le rendu accentué l'exige.
 
 ### Step 7 — Post-process rename ✓
 

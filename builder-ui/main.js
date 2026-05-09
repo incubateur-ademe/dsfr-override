@@ -283,7 +283,7 @@ function renderPostProcess() {
     ${t(fieldId('pc-enabled'), 'post-css.enabled', pc.enabled !== false, 'enabled (mqpacker + dedup)')}
     ${t(fieldId('pc-banner'),  'post-css.banner',  pc.banner !== false,  'banner ADEME en tête du fichier')}
     ${$field('Banner-text', `<textarea id="${esc(fieldId('pc-banner-text'))}" name="${esc(fieldId('pc-banner-text'))}" data-path="post-css.banner-text" data-strip-empty rows="3" placeholder="(vide → 'ADEME Design System — based on DSFR <version> (MIT)…')">${esc(pc['banner-text'] ?? '')}</textarea>`, fieldId('pc-banner-text'), 'vide → texte par défaut',
-      'Texte du commentaire inséré en tête du CSS final (uniquement si `banner` est activé). Multi-lignes possible — PostCSS l\'enrobe automatiquement dans `/* … */`. Variables disponibles : aucune (le texte est utilisé tel quel) ; pour citer la version DSFR, écris-la en dur ou laisse vide pour bénéficier du défaut généré.')}
+      'Texte du commentaire inséré en tête du CSS final (uniquement si `banner` est activé). Multi-lignes possible — PostCSS l\'enrobe automatiquement dans `/* … */`. Aucune variable interpolée : le texte est utilisé tel quel. Pour citer la version DSFR, l\'écrire en dur dans le champ ; le laisser vide reprend le banner par défaut généré.')}
   `, { cliOnly: true, help:
 'Étapes appliquées après la compilation sass, sur le CSS final dans `dist/`.\n\nChaque sous-étape est opt-out via son toggle. Aucun effet sur la preview live.' });
 }

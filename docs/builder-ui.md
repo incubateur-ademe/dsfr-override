@@ -5,11 +5,11 @@ Mini-app web pour éditer interactivement `mapping.yml` avec preview live. Sorti
 ## Lancer
 
 ```bash
-node builder/serve.js                              # PORT=8765 par défaut
-# → http://localhost:8765/builder-ui/index.html
+node builder/serve.js                              # PORT=8080 par défaut
+# → http://localhost:8080/builder-ui/index.html
 ```
 
-Pas de step de build : HTML/CSS/JS natif, le navigateur charge directement les fichiers via `<script type="importmap">` qui pointe sur `node_modules/yaml/browser/` et sur `builder/lch.js` réutilisé tel quel.
+Pas de step de build : HTML/CSS/JS natif, le navigateur charge directement les fichiers via `<script type="importmap">` qui pointe sur `node_modules/yaml/browser/`, sur `builder/lch.js` + `builder/generate/palette.js` réutilisés tels quels, et sur `highlight.js@11.11.1` via le CDN `esm.sh` (la version locale CJS-only ne s'importe pas en ESM dans le navigateur).
 
 ## Layout
 
@@ -17,18 +17,29 @@ Pas de step de build : HTML/CSS/JS natif, le navigateur charge directement les f
 ┌─────────────────────────────────────────────────────────────────────┐
 │ topbar : titre + Charger / Reset / Exporter mapping.yml             │
 ├─────────────────────────────────────────────────────────────────────┤
-│ Settings (≈22%)  │  Preview iframe (≈56%)         │ YAML brut (≈22%)│
-│  Méta            │  example/index.html            │                 │
-│  Typo            │  reflète le state en live :    │                 │
-│  Couleurs        │   • palette LCh recalculée     │                 │
-│  Border-radius   │   • shadow-color light/dark    │                 │
-│  Shadows         │   • border-radius par target   │                 │
-│  Composants ✶    │                                │                 │
-│  Post-process ✶  │                                │                 │
+│ Settings (≈22%)  │  Preview (≈56%)                │ YAML brut (≈22%)│
+│  Méta            │  segmented Vue : Témoin |      │                 │
+│  Typo            │   Galerie | Palette LCh        │                 │
+│  Couleurs        │  segmented Thème : Auto |      │                 │
+│  Border-radius   │   Light | Dark                 │                 │
+│  Shadows         │  reflète le state en live :    │                 │
+│  Composants ✶    │   • palette LCh recalculée     │                 │
+│  Post-process ✶  │   • shadow-color light/dark    │                 │
+│                  │   • border-radius par target   │                 │
+│                  │   • rename familles + font     │                 │
+│                  │   • theme bidirectionnel       │                 │
 └─────────────────────────────────────────────────────────────────────┘
 
 ✶ = build CLI uniquement (pas de feedback live)
 ```
+
+Trois vues commutables via `data-mode` :
+
+- **Témoin** (`example/index.html` en iframe) : page exhaustive (typo / palette / boutons / formulaires / alertes / cards / consent banner / icônes). Reçoit du builder le state via `postMessage` et ré-écrit live le titre des sections palette, les swatches recalculés, le diagnostic typo, et le thème (radio Auto/Light/Dark sync).
+- **Galerie** (`gallery.html`) : variantes des composants DSFR (tags, alerts complètes, etc.). Pas de theme switcher local — le thème est piloté depuis le builder.
+- **Palette LCh** (DOM dans le builder, hors iframe) : grille de swatches par famille avec ratios WCAG sur `sun-157` / `main` / `625`, tagués AAA / AA / fail. Recompute à chaque édition.
+
+Tous les boutons d'aide `?` ouvrent un singleton `#help-popup` (position fixed) qui échappe à n'importe quel `overflow: auto` parent. Les backticks dans le texte d'aide sont rendus en `<code>` monospace via un mini-parser markdown.
 
 ## Sync UI ↔ YAML
 
@@ -48,6 +59,10 @@ Source de vérité unique : un objet `state` JS qui mirror le schéma `mapping.y
 | Shadows | **oui** | set `--shadow-color` sur `:root` light + `:root[data-fr-theme=dark]` |
 | Composants à exclure | non | uniquement appliqué au `pnpm build` |
 | Post-process / PostCSS / manual-overrides | non | idem |
+| `post-css.banner-text` (textarea) | non | string custom écrasant le banner par défaut, vide → fallback (`data-strip-empty` sur le textarea retire la clé du YAML quand vide) |
+| Rename famille (`cfg.rename`) | **oui** | propagé à la page témoin via postMessage → titres palette + swatches reflètent le rename live |
+| `typography.primary.css-name` | **oui** | propagé idem → diagnostic font de la page témoin reflète le nom CSS |
+| Thème de l'iframe | **bidirectionnel** | builder → témoin via postMessage à chaque switch ; témoin → builder via postMessage sur change humain (pas de loop : `radio.checked = true` programmatique ne déclenche pas `change`) |
 
 ### Pourquoi override les vars combinées ET les per-grade
 
@@ -66,11 +81,14 @@ Le builder UI hardcode la liste des 7 combinaisons que DSFR émet pour les famil
 
 ```
 builder-ui/
-├── package.json     # dep: yaml@2 (parser + stringifier ESM)
-├── index.html       # importmap pour yaml + builder/lch.js + builder/generate/palette.js
-├── main.js          # state + render + sync + preview
-└── style.css        # layout grid 3 colonnes, dark yaml pane
+├── package.json     # deps: yaml@2 + highlight.js@11 (browser CDN-only)
+├── index.html       # importmap pour yaml + lch + palette + hljs CDN
+├── gallery.html     # vue Galerie (composants DSFR exhaustifs)
+├── main.js          # state + render + sync + preview + postMessage
+└── style.css        # layout grid 3 colonnes, dark yaml pane, popup help
 ```
+
+`example/index.html` (à la racine du repo) est l'autre vue chargée en iframe ; il fonctionne aussi en standalone via `node builder/serve.js`.
 
 ## Étendre
 
