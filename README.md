@@ -4,6 +4,8 @@ Builder de design system dérivé du DSFR. L'utilisateur édite un `mapping.yml`
 
 L'exemple `mapping.yml.example` reproduit la palette ADEME (Blue ATE + Red Laura, Public Sans, border-radius 0.75 rem, ombres neutres, header/footer désactivés) — point de départ utile pour démarrer une autre déclinaison.
 
+> 🌐 **Builder UI en ligne** : <https://incubateur-ademe.github.io/dsfr-override/builder-ui/> — édition visuelle du mapping avec preview live (palette LCh, page témoin, validation utilitaires). Build prod déployée à chaque push sur `main`.
+
 ## Quick start
 
 ```bash
@@ -49,7 +51,8 @@ Sortie dans `dist/` :
 |---|---|---|---|
 | Smoke test rapide après `pnpm build` (« rien n'a cassé d'évident ? ») | Page témoin | < 1 s, zéro dep | `pnpm serve` → `:8080/example/index.html` |
 | Explorer un composant DSFR particulier ou démontrer le rendu | Storybook | ~30 s premier démarrage, ~5 s ensuite | `pnpm storybook` → `:6006` |
-| Éditer le mapping en live | Builder UI | < 1 s | `pnpm serve` → `:8080/builder-ui/index.html` |
+| Éditer le mapping en live (local) | Builder UI | < 1 s | `pnpm serve` → `:8080/builder-ui/index.html` |
+| Éditer le mapping en ligne | Builder UI prod | aucun setup | <https://incubateur-ademe.github.io/dsfr-override/builder-ui/> |
 
 **Page témoin** : un seul HTML qui exerce typo / palette / boutons / formulaires / alertes / cards / classes utilitaires renommées. Diagnostic typographie qui confirme via canvas measurement que la fonte primary est bien rendue par les fichiers déclarés. Voir `docs/example.md`.
 
