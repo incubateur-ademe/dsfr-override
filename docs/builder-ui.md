@@ -85,7 +85,7 @@ Le builder UI hardcode la liste des 7 combinaisons que DSFR émet pour les famil
 
 L'éditeur de couleurs propose les 24 familles connues de `dsfr/src/module/color/variable/_options.scss` (sauf `grey`, qui suit son propre régime DSFR). Chaque famille s'ajoute via un dropdown footer ou les raccourcis utility (info / success / warning / error). L'input « Nom DSFR (clé) » est un `<select>` fermé sur cette liste — il renomme la clé dans `state.colors` en préservant l'ordre.
 
-La preview live des combinaisons fonctionne pour toute famille : au boot, le builder fetch `/__api/dsfr-shade-combos`, qui parse `_sets.scss` côté serveur et renvoie `{ family: [{ name, light, dark }, ...] }`. La liste hardcodée pour `blue-france` / `red-marianne` reste comme fallback si l'endpoint est indispo.
+La preview live des combinaisons fonctionne pour toute famille : au boot, le builder fetch `../__api/dsfr-shade-combos.json`, qui parse `_sets.scss` côté serveur et renvoie `{ family: [{ name, light, dark }, ...] }`. La liste hardcodée pour `blue-france` / `red-marianne` reste comme fallback si l'endpoint est indispo.
 
 ## Couleurs utilitaires (`info` / `success` / `warning` / `error`)
 
@@ -104,9 +104,11 @@ L'éditeur expose les sections `icons` (overrides + add) et `manual-overrides` d
 
 Pour les icônes, deux APIs serveur alimentent l'expérience :
 
-- `/__api/icons/dsfr` → liste des `~1036` icônes du submodule (avec leur groupe), peuplée dans un `<datalist>` autocomplete.
-- `/__api/icons/lucide` → liste des `~1952` icônes Lucide.
-- `/__api/icons/{dsfr,lucide}/svg/<name>.svg` → résolution de chaque SVG, utilisée pour l'aperçu `<img>` 24×24 affiché à gauche (DSFR origin) et à droite (Lucide cible) de chaque ligne d'override. L'aperçu est mis à jour chirurgicalement à chaque frappe (pas de re-render global).
+- `../__api/icons/dsfr.json` → liste des `~1036` icônes du submodule (avec leur groupe), peuplée dans un `<datalist>` autocomplete.
+- `../__api/icons/lucide.json` → liste des `~1952` icônes Lucide.
+- `../__api/icons/{dsfr,lucide}/<name>.svg` → résolution de chaque SVG, utilisée pour l'aperçu `<img>` 24×24 affiché à gauche (DSFR origin) et à droite (Lucide cible) de chaque ligne d'override. L'aperçu est mis à jour chirurgicalement à chaque frappe (pas de re-render global).
+
+Toutes les routes `__api` sont consommées en relatif depuis `/builder-ui/index.html` (`../__api/...`) — strictement identiques en dev (servies par `serve.ts`) et en prod (snapshots statiques émis par `pnpm build:pages`).
 
 ## Limites assumées
 

@@ -459,7 +459,7 @@ function renderIcons(): string {
     // The shape `{ name; token? }` in IconAddEntry: token defaults to name.
     return { token: e.token ?? e.name, name: e.name };
   });
-  // <img> previews resolved via /__api/icons/<source>/svg/<name>.svg. The
+  // <img> previews resolved via ../__api/icons/<source>/<name>.svg. The
   // server 404s on unknown names, the onerror swap to a neutral placeholder
   // keeps the layout stable while typing.
   const dsfrPreview = (name: string): string => `<img class="icon-preview" alt="" src="../__api/icons/dsfr/${esc(name)}.svg" onerror="this.style.opacity=0.15;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22/>'">`;
@@ -977,7 +977,7 @@ function pushPreviewState(): void {
 // vars. Hardcoded for the 2 ADEME-tracked families; if the user adds another
 // family the live preview won't reflect the combined vars (full build CLI
 // will). Variant emitted: light-mode value only (most components use that).
-// Per-family combo lists are loaded at boot from /__api/dsfr-shade-combos
+// Per-family combo lists are loaded at boot from ../__api/dsfr-shade-combos.json
 // (parsed from dsfr/_sets.scss). Until that resolves, this hardcoded fallback
 // covers blue-france / red-marianne so the live preview works on first paint.
 interface ShadeCombo { name: string; light: string; dark: string }
