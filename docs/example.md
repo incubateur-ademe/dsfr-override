@@ -33,8 +33,15 @@ Surcoût négligeable (~250 lignes HTML + 50 lignes Node), usage complémentaire
 | Badges                 | Success / Info / Warning / Error / Default arrondis                                      |
 | Alertes                | Info / Succès / Warning / Erreur arrondis                                                |
 | Cards                  | Default (border via box-shadow inset du card-fix) / shadow / no-border                   |
+| Consent banner         | Pattern DSFR `fr-consent-banner` — exerce le JS interactif (`dsfr.module.min.js`)        |
 | Vérification rename    | Classes utilitaires `.fr-background-action-high--blue-ate` (utility-ademe.css)           |
 | Variables CSS          | Auto-check : `--background-action-high-blue-ate = #001977` et 0 occurrence blue-france   |
+
+## DSFR JavaScript
+
+Plusieurs composants DSFR (modal, accordion, toggle, consent banner, navigation, …) ont besoin de `dsfr.module.min.js` chargé en haut de la page. Le submodule DSFR ship juste les sources, pas les bundles compilés — donc on tire le JS pré-buildé depuis `@gouvfr/dsfr@1.14.4` (même version que celle pinned du submodule), et le builder le copie dans `dist/dsfr.module.min.js` à chaque `pnpm build`. La page témoin charge `<script type="module" src="../dist/dsfr.module.min.js"></script>`.
+
+Si tu changes la version DSFR (`mapping.yml.dsfr`), pense à bumper `@gouvfr/dsfr` dans `package.json` à la même version pour que le JS ne diverge pas du CSS.
 
 ## Le panneau de diagnostic typographie
 

@@ -65,13 +65,34 @@ export function generateOverrides({ projectRoot, mapping, distDir }) {
   written.push(indexPath);
 
   const fontsCopied = copyFonts({ projectRoot, mapping, distDir });
+  const jsCopied = copyDsfrJs({ projectRoot, distDir });
 
   return {
     overridesIndex: indexPath,
     written,
     fontsCopied,
+    jsCopied,
     iconsCopied: iconResult
   };
+}
+
+/**
+ * Copy the upstream DSFR JS bundles (module + nomodule) into dist/. Without
+ * the JS, interactive components (modal, accordion, toggle, consent banner…)
+ * stay static. We pull from @gouvfr/dsfr because the submodule itself ships
+ * sources only — pinning the package version in package.json mirrors the
+ * submodule's pinned tag.
+ */
+function copyDsfrJs({ projectRoot, distDir }) {
+  const src = join(projectRoot, 'node_modules/@gouvfr/dsfr/dist/dsfr');
+  if (!existsSync(src)) return 0;
+  if (!existsSync(distDir)) mkdirSync(distDir, { recursive: true });
+  let count = 0;
+  for (const f of ['dsfr.module.min.js', 'dsfr.nomodule.min.js']) {
+    const s = join(src, f);
+    if (existsSync(s)) { cpSync(s, join(distDir, f)); count++; }
+  }
+  return count;
 }
 
 function copyFonts({ projectRoot, mapping, distDir }) {
