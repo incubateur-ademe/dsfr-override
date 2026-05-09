@@ -113,6 +113,15 @@ button.add-btn--utility { font-size: 10px; padding: 0.15rem 0.4rem; }
 }
 .add-family select { font-size: 11px; padding: 0.2rem; }
 
+.list-row--icons { gap: 0.4rem; align-items: center; }
+.list-row--icons input { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; }
+.icon-preview {
+  width: 24px; height: 24px; flex: 0 0 auto;
+  background: #f6f6f6; border: 1px solid #e5e5e5; border-radius: 3px;
+  padding: 2px; box-sizing: border-box;
+  object-fit: contain;
+}
+
 .toggle { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
 .toggle input { margin: 0; }
 

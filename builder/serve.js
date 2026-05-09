@@ -24,6 +24,76 @@ const server = createServer((req, res) => {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   if (urlPath === '/' || urlPath === '') urlPath = ROOT_PAGE;
 
+  // ---------------------------------------------------------------------------
+  // Icons APIs — listing + per-name SVG. Used by the builder-ui to populate
+  // datalists (autocomplete) and inline <img> previews on each icon row.
+  //
+  // /__api/icons/dsfr        → JSON [{name, group}, ...]    (~1000 entries)
+  // /__api/icons/lucide      → JSON ["circle-check", ...]   (~1500 entries)
+  // /__api/icons/dsfr/svg/<name>.svg    → resolved DSFR SVG
+  // /__api/icons/lucide/svg/<name>.svg  → resolved Lucide SVG
+  // ---------------------------------------------------------------------------
+  if (urlPath === '/__api/icons/dsfr') {
+    const root = join(PROJECT_ROOT, 'dsfr/src/dsfr/core/icon');
+    const out = [];
+    if (existsSync(root)) {
+      const walk = (dir, group) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          if (entry.isDirectory()) walk(join(dir, entry.name), group ?? entry.name);
+          else if (entry.name.endsWith('.svg')) out.push({ name: entry.name.slice(0, -4), group });
+        }
+      };
+      walk(root, null);
+      out.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    res.end(JSON.stringify(out));
+    return;
+  }
+  if (urlPath === '/__api/icons/lucide') {
+    const root = join(PROJECT_ROOT, 'node_modules/lucide-static/icons');
+    const out = existsSync(root)
+      ? readdirSync(root).filter(f => f.endsWith('.svg')).map(f => f.slice(0, -4)).sort()
+      : [];
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    res.end(JSON.stringify(out));
+    return;
+  }
+  const dsfrSvgMatch = urlPath.match(/^\/__api\/icons\/dsfr\/svg\/([a-z0-9-]+(?:--[a-z0-9-]+)*)\.svg$/i);
+  if (dsfrSvgMatch) {
+    const name = dsfrSvgMatch[1];
+    const root = join(PROJECT_ROOT, 'dsfr/src/dsfr/core/icon');
+    let found = null;
+    if (existsSync(root)) {
+      const walk = (dir) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          if (found) return;
+          if (entry.isDirectory()) walk(join(dir, entry.name));
+          else if (entry.name === `${name}.svg`) found = join(dir, entry.name);
+        }
+      };
+      walk(root);
+    }
+    if (found) {
+      res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=300' });
+      createReadStream(found).pipe(res);
+    } else {
+      res.writeHead(404); res.end('Icon not found');
+    }
+    return;
+  }
+  const lucideSvgMatch = urlPath.match(/^\/__api\/icons\/lucide\/svg\/([a-z0-9-]+)\.svg$/i);
+  if (lucideSvgMatch) {
+    const file = join(PROJECT_ROOT, 'node_modules/lucide-static/icons', `${lucideSvgMatch[1]}.svg`);
+    if (existsSync(file)) {
+      res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=300' });
+      createReadStream(file).pipe(res);
+    } else {
+      res.writeHead(404); res.end('Icon not found');
+    }
+    return;
+  }
+
   // Tiny JSON API used by the builder-ui to discover the shade combos that
   // DSFR emits as `--<family>-<lightGrade>-<darkGrade>` vars. We need them to
   // override the live preview for any family (not just the 2 primaries we

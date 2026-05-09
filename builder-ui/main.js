@@ -417,23 +417,32 @@ function renderIcons() {
   const ic = state.icons ?? {};
   const overrides = Object.entries(ic.overrides ?? {});
   const add = (ic.add ?? []).map(e => typeof e === 'string' ? { token: e, name: e } : e);
+  // <img> previews resolved via /__api/icons/<source>/svg/<name>.svg. The
+  // server 404s on unknown names, the onerror swap to a neutral placeholder
+  // keeps the layout stable while typing.
+  const dsfrPreview = (name) => `<img class="icon-preview" alt="" src="/__api/icons/dsfr/svg/${esc(name)}.svg" onerror="this.style.opacity=0.15;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22/>'">`;
+  const lucidePreview = (name) => `<img class="icon-preview" alt="" src="/__api/icons/lucide/svg/${esc(name)}.svg" onerror="this.style.opacity=0.15;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22/>'">`;
+
   const ovRows = overrides.map(([from, to], i) => {
     const idF = fieldId(`icon-ov-${i}-from`);
     const idT = fieldId(`icon-ov-${i}-to`);
-    return `<div class="list-row" data-icon-ov-from="${esc(from)}">
-      <input type="text" id="${esc(idF)}" name="${esc(idF)}" value="${esc(from)}" data-key="from" placeholder="fr--success-fill" title="Nom DSFR (préfixe fr-- inclus)">
+    return `<div class="list-row list-row--icons" data-icon-ov-from="${esc(from)}">
+      ${dsfrPreview(from)}
+      <input type="text" id="${esc(idF)}" name="${esc(idF)}" value="${esc(from)}" data-key="from" list="list-dsfr-icons" placeholder="fr--success-fill" title="Nom DSFR (préfixe fr-- inclus)">
       <span aria-hidden="true">→</span>
-      <input type="text" id="${esc(idT)}" name="${esc(idT)}" value="${esc(to)}" data-key="to" placeholder="circle-check" title="Nom Lucide">
+      <input type="text" id="${esc(idT)}" name="${esc(idT)}" value="${esc(to)}" data-key="to" list="list-lucide-icons" placeholder="circle-check" title="Nom Lucide">
+      ${lucidePreview(to)}
       <button class="icon-btn" data-action="rm-icon-ov" title="Supprimer">×</button>
     </div>`;
   }).join('');
   const addRows = add.map((entry, i) => {
     const idTok = fieldId(`icon-add-${i}-token`);
     const idNm  = fieldId(`icon-add-${i}-name`);
-    return `<div class="list-row" data-icon-add-idx="${i}">
+    return `<div class="list-row list-row--icons" data-icon-add-idx="${i}">
       <input type="text" id="${esc(idTok)}" name="${esc(idTok)}" value="${esc(entry.token)}" data-key="token" placeholder="flame" title="Token court → .fr-icon-<token>">
       <span aria-hidden="true">=</span>
-      <input type="text" id="${esc(idNm)}" name="${esc(idNm)}" value="${esc(entry.name)}" data-key="name" placeholder="flame" title="Nom Lucide source (= token si alias non nécessaire)">
+      <input type="text" id="${esc(idNm)}" name="${esc(idNm)}" value="${esc(entry.name)}" data-key="name" list="list-lucide-icons" placeholder="flame" title="Nom Lucide source (= token si alias non nécessaire)">
+      ${lucidePreview(entry.name)}
       <button class="icon-btn" data-action="rm-icon-add" title="Supprimer">×</button>
     </div>`;
   }).join('');
@@ -691,10 +700,28 @@ function attachHandlers() {
     renderAll(); applyAll();
   });
 
+  // Live preview swap: rebind the <img> next to an input as the user types,
+  // without renderAll. Falls back to the empty-svg onerror handler when the
+  // name doesn't resolve.
+  const updatePreview = (input, base) => {
+    const img = input.previousElementSibling?.matches('img.icon-preview')
+      ? input.previousElementSibling
+      : input.nextElementSibling?.matches('img.icon-preview')
+      ? input.nextElementSibling
+      : null;
+    if (!img) return;
+    const name = input.value.trim();
+    if (!name) { img.removeAttribute('src'); return; }
+    img.style.opacity = '';
+    img.src = `${base}/${encodeURIComponent(name)}.svg`;
+  };
   // Icons.overrides — pairs { from: dsfrName, to: lucideName }.
   document.querySelectorAll('[data-icon-ov-from]').forEach(row => {
     const from = row.dataset.iconOvFrom;
-    row.querySelector('[data-key="from"]').addEventListener('input', e => {
+    const fromInput = row.querySelector('[data-key="from"]');
+    const toInput = row.querySelector('[data-key="to"]');
+    fromInput.addEventListener('input', e => {
+      updatePreview(fromInput, '/__api/icons/dsfr/svg');
       const newFrom = e.target.value;
       if (!newFrom || newFrom === from || state.icons?.overrides?.[newFrom]) return;
       const next = {};
@@ -704,7 +731,8 @@ function attachHandlers() {
       state.icons.overrides = next;
       renderAll(); applyAll();
     });
-    row.querySelector('[data-key="to"]').addEventListener('input', e => {
+    toInput.addEventListener('input', e => {
+      updatePreview(toInput, '/__api/icons/lucide/svg');
       state.icons ??= {}; state.icons.overrides ??= {};
       state.icons.overrides[from] = e.target.value;
       onStateChanged();
@@ -734,7 +762,10 @@ function attachHandlers() {
       onStateChanged();
     };
     tokenInput.addEventListener('input', setEntry);
-    nameInput.addEventListener('input', setEntry);
+    nameInput.addEventListener('input', () => {
+      updatePreview(nameInput, '/__api/icons/lucide/svg');
+      setEntry();
+    });
     row.querySelector('[data-action="rm-icon-add"]').addEventListener('click', () => {
       state.icons.add.splice(idx, 1);
       renderAll(); applyAll();
@@ -1342,6 +1373,26 @@ setYamlStatus('ok', 'défaut chargé');
 // Fonts autocomplete: fill #list-font-files once. Endpoint is plain JSON
 // (array of stems without extension). 404 / network failure → empty list,
 // no big deal.
+// Helper: stuff a list of strings into a <datalist> via createDocumentFragment
+// (cheap since browsers index datalists once).
+function fillDatalist(id, values) {
+  const dl = document.getElementById(id);
+  if (!dl) return;
+  const frag = document.createDocumentFragment();
+  for (const v of values) {
+    const opt = document.createElement('option');
+    opt.value = v;
+    frag.appendChild(opt);
+  }
+  dl.replaceChildren(frag);
+}
+fetch('/__api/icons/dsfr').then(r => r.ok ? r.json() : []).then(arr => {
+  fillDatalist('list-dsfr-icons', arr.map(e => e.name));
+}).catch(() => {});
+fetch('/__api/icons/lucide').then(r => r.ok ? r.json() : []).then(names => {
+  fillDatalist('list-lucide-icons', names);
+}).catch(() => {});
+
 fetch('/__api/fonts').then(r => r.ok ? r.json() : []).then(stems => {
   const dl = document.getElementById('list-font-files');
   if (!dl) return;
